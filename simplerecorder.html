@@ -167,6 +167,7 @@
 				this.currentAudioBlob = null;
 				this.isRecording = false;
 				this.hasRecording = false;
+				this.isPlaying = false;
 
 				this.recordButton = document.getElementById('recordButton');
 				this.playButton = document.getElementById('playButton');
@@ -282,6 +283,12 @@
 				}
 			}
 
+			stopPlaying() {
+				if (this.audio && !this.audio.paused) {
+					this.audio.pause();
+					this.audio.currentTime = 0; // Reset playback to the beginning
+				}
+			}
 			getSupportedMimeType() {
 				// Prioritize AAC/MP4 for Safari compatibility
 				const types = [
