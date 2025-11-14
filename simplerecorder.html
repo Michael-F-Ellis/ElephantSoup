@@ -153,7 +153,7 @@
 		<div id="error" class="error"></div>
 
 		<footer style="margin-top: 40px; color: #8e8e93; font-size: 12px;">
-			Version 1.0.0
+			Version 1.0.1
 		</footer>
 
 	</div>
@@ -232,7 +232,7 @@
 							type: this.mediaRecorder.mimeType
 						});
 						this.hasRecording = true;
-						this.playButton.disabled = false;
+						this.updateUI();
 
 						// Stop all tracks in the stream
 						stream.getTracks().forEach(track => track.stop());
@@ -242,7 +242,6 @@
 					this.isRecording = true;
 
 					this.updateUI();
-					this.status.textContent = 'Recording...';
 
 				} catch (error) {
 					this.showError('Failed to start recording: ' + error.message);
@@ -254,11 +253,14 @@
 					this.mediaRecorder.stop();
 					this.isRecording = false;
 					this.updateUI();
-					this.status.textContent = 'Recording complete';
 				}
 			}
 
 			playRecording() {
+				if (this.isPlaying) {
+					this.stopPlaying();
+					return;
+				}
 				if (this.currentAudioBlob && this.hasRecording) {
 					const audioUrl = URL.createObjectURL(this.currentAudioBlob);
 					const audio = new Audio(audioUrl);
@@ -269,17 +271,21 @@
 					audio.volume = 1.0;
 
 					audio.onended = () => {
+						this.isPlaying = false;
 						URL.revokeObjectURL(audioUrl);
-						this.status.textContent = 'Playback complete';
-						this.recordButton.disabled = false; // Re-enable record button after playback
+						this.updateUI();
 					};
 
 					audio.play().catch(error => {
 						this.showError('Failed to play recording: ' + error.message);
 					});
 
-					this.status.textContent = 'Playing...';
+					this.isPlaying = true;
+					this.audio = audio; // Store the audio object
 					this.recordButton.disabled = true; // Disable record button while playing
+					this.updateUI();
+				} else {
+					this.showError('No recording to play');
 				}
 			}
 
@@ -287,6 +293,8 @@
 				if (this.audio && !this.audio.paused) {
 					this.audio.pause();
 					this.audio.currentTime = 0; // Reset playback to the beginning
+					this.isPlaying = false;
+					this.updateUI();
 				}
 			}
 			getSupportedMimeType() {
@@ -309,22 +317,43 @@
 			}
 
 			updateUI() {
+				// Update Record Button
 				if (this.isRecording) {
 					this.recordButton.classList.add('recording');
-					this.recordButton.innerHTML = '<i class="fas fa-stop"></i><span>Stop</span>';
+					this.recordButton.innerHTML = '<i class="fas fa-stop"></i><span>Stop</span>'; // Change icon and text
 					this.playButton.disabled = true;
+					this.recordButton.disabled = false; // Always enable stop button
+					this.status.textContent = 'Recording...';
 				} else {
 					this.recordButton.classList.remove('recording');
-					this.recordButton.innerHTML = '<i class="fas fa-microphone"></i><span>Record</span>';
-					this.playButton.disabled = !this.hasRecording;
-					this.recordButton.disabled = false; // Enable record button when not recording or playing
+					this.recordButton.innerHTML = '<i class="fas fa-microphone"></i><span>Record</span>'; // Change icon and text back
+					// Disable record button if playing
+					this.recordButton.disabled = this.isPlaying;
+					if (this.hasRecording && !this.isPlaying) {
+						this.status.textContent = '';
+					} else if (!this.hasRecording && !this.isPlaying) {
+						this.status.textContent = 'Ready to record';
+					}
+				}
+
+				// Update Play Button
+				if (this.isPlaying) { // If playing, disable play button and update status
+					this.status.textContent = 'Playing...';
+					this.playButton.innerHTML = '<i class="fas fa-stop"></i><span>Stop</span>'; // Change icon and text
+				} else {
+					// Enable play button only if there's a recording and not currently recording
+					this.playButton.disabled = !this.hasRecording || this.isRecording;
+					this.playButton.innerHTML = '<i class="fas fa-play"></i><span>Play</span>'
 				}
 			}
 
 			showError(message) {
 				this.error.textContent = message;
 				this.error.style.display = 'block';
-				this.status.textContent = 'Error occurred';
+				// Only update status if it's not already showing recording/playing
+				if (!this.isRecording && !this.isPlaying) {
+					this.status.textContent = 'Error occurred';
+				}
 			}
 
 			hideError() {
