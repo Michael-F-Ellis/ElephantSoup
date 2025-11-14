@@ -39,6 +39,11 @@ See below if you want to install it locally.
 3.  **Stop Recording:** Click the "Record" button again to end the recording.
 4.  **Play:** Use the "Play" button review your recording. You can stop playback by clicking it again.
 
+## Hands-Free Operation
+If you have a remote page turner pedal (e.g Donner DBM-1) that acts like a virtual keyboard, set it to send *Enter* to toggle Record and *Space* to toggle Play.
+
+
+
 ## Contributing
 
 I'm not intending to add more features to the app. That would be contrary to my intent to keep it as simple and distraction-free as possible.  You're certainly welcome to create a fork and add whatever features you want.
