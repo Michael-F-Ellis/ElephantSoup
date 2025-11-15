@@ -153,7 +153,7 @@
 		<div id="error" class="error"></div>
 
 		<footer style="margin-top: 40px; color: #8e8e93; font-size: 12px;">
-			Version 1.0.2
+			Version 1.0.3 <a href="https://github.com/michael-f-ellis/SimpleRecorder" target="_blank">Source Code</a>
 		</footer>
 
 	</div>
@@ -358,24 +358,6 @@
 					this.isPlaying = false;
 					this.updateUI();
 				}
-			}
-			getSupportedMimeType() {
-				// Prioritize AAC/MP4 for Safari compatibility
-				const types = [
-					'audio/mp4', // AAC in MP4 - Safari preferred
-					'audio/webm', // Fallback for other browsers
-					'audio/webm;codecs=opus',
-					'audio/ogg;codecs=opus'
-				];
-
-				for (let type of types) {
-					if (MediaRecorder.isTypeSupported(type)) {
-						return type;
-					}
-				}
-
-				// If no specific type is supported, let browser choose default
-				return undefined;
 			}
 
 			updateUI() {

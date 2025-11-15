@@ -4,11 +4,11 @@ A minimalist web app for music practice and learning.
 ## Philosophy
 Credible research shows that the single most powerful learning tool is *frequent low-stakes testing with immediate feedback*.  That's what SimpleRecorder is designed to do.
 
-Its intentionally the simplest possible interface: Hit Record, play or sing a short passage you're working on. 
+It's intentionally the simplest possible interface: Hit Record, then play or sing a short passage you're working on. 
 
 Then hit Stop, hit Play and *listen*. Ask yourself "What, specifically, can I do to make that better?"
 
-Then take another shot at it.
+Then take another shot at it.  *Lather, rinse, repeat.*
 
 ## Anti-Philosophy
 SimpleRecorder is not a DAW.  It doesn't even support saving your audio as a file.  There's no metronome, equalizer, tuner, waveform display, practice log, overdubbing, multi-tracking, FX, ... or anything except a distraction-free way to record and listen to short segments of your playing and singing.
@@ -48,7 +48,7 @@ If you have a remote page turner pedal (e.g Donner DBM-1) that acts like a virtu
 
 I'm not intending to add more features to the app. That would be contrary to my intent to keep it as simple and distraction-free as possible.  You're certainly welcome to create a fork and add whatever features you want.
 
-Bug fixes are always welcome.
+Bug fixes and tweaks to UI appearance are always welcome.
 
 ## License
 
