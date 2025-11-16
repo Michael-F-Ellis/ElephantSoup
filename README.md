@@ -1,7 +1,7 @@
 # SimpleRecorder
 A minimalist web app for music practice and learning.
 
-![Screenshot](screen.png)
+<img src=screen.png width=150>
 
 ## Philosophy
 Credible research shows that the single most powerful learning tool is *frequent low-stakes testing with immediate feedback*.  That's what SimpleRecorder is designed to do.
