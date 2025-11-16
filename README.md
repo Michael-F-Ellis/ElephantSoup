@@ -4,7 +4,7 @@ A minimalist web app for music practice and learning.
 <img src=screen.png width=150>
 
 ## Philosophy
-Credible research shows that the single most powerful learning tool is *frequent low-stakes testing with immediate feedback*.  That's what SimpleRecorder is designed to do.
+Credible research [^1] shows that the single most powerful learning tool is *frequent low-stakes testing with immediate feedback*. That's what SimpleRecorder is designed to do.
 
 It's intentionally the simplest possible interface: Hit Record, then play or sing a short passage you're working on. 
 
@@ -12,8 +12,10 @@ Then hit Stop, hit Play and *listen*. Ask yourself "What, specifically, can I do
 
 Then take another shot at it.  *Lather, rinse, repeat.*
 
+[^1]: *Brown, Peter C. Make It Stick : the Science of Successful Learning. Cambridge, Massachusetts :The Belknap Press of Harvard University Press, 2014.*
+
 ## Anti-Philosophy
-SimpleRecorder is not a DAW.  It doesn't even support saving your audio as a file.  There's no metronome, equalizer, tuner, waveform display, practice log, overdubbing, multi-tracking, FX, ... or anything except a distraction-free way to record and listen to short segments of your playing and singing.
+SimpleRecorder is not a DAW or a looper.  It doesn't even support saving your audio as a file.  There's no metronome, equalizer, tuner, waveform display, practice log, overdubbing, multi-tracking, FX, ... or anything except a distraction-free way to record and listen to short segments of your playing and singing.
 
 DAW's are great for producing and sound engineering, but I find I get sidetracked playing with settings and features when what I really need to be doing is getting a piece into my voice and fingers so I can perform it live.
 
