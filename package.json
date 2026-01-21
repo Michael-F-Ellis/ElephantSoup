@@ -1,0 +1,17 @@
+{
+	"name": "simple-recorder",
+	"private": true,
+	"version": "1.0.4",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc && vite build",
+		"preview": "vite preview",
+		"check": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"typescript": "^5.2.2",
+		"vite": "^5.0.8",
+		"@types/node": "^20.0.0"
+	}
+}
