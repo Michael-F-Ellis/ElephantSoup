@@ -1,59 +1,35 @@
 import './style.css'
+import { RepertoireManager, Segment } from './repertoire';
+
+// --- Recorder Logic (Refactored) ---
 
 const constraints = {
 	audio: {
-		// 44100 Hz (CD Quality) or 48000 Hz for professional use
 		sampleRate: { ideal: 44100 },
 		channelCount: { ideal: 2 },
 		echoCancellation: false,
 		noiseSuppression: false,
-		autoGainControl: false // might want to experiment with setting this to true.
+		autoGainControl: false
 	},
 	video: false
 };
 
 function getBestAudioRecorderOptions(): MediaRecorderOptions {
-	// How to use this function:
-	// 1. Get the stream (same high-quality constraints for all platforms)
-	// const stream = await navigator.mediaDevices.getUserMedia(constraints); 
-	// 2. Get the best options for the current browser
-	// const options = getBestAudioRecorderOptions(); 
-	// 3. Initialize the recorder
-	// const mediaRecorder = new MediaRecorder(stream, options);
-
 	const opusMime = 'audio/webm; codecs=opus';
 	const aacMime = 'audio/mp4; codecs=mp4a.40.2';
-
-	// High Bitrate Target (Opus is more efficient, so 256k is top-tier)
 	const bitrate = 256000;
+	let mimeType: string = '';
 
-	let mimeType: string;
-
-	// 1. Check for Opus (Best for Chrome/Edge/Android/Windows)
 	if (MediaRecorder.isTypeSupported(opusMime)) {
 		mimeType = opusMime;
-		console.log("Using WebM/Opus for high quality.");
-	}
-	// 2. Check for AAC (Best for iOS/Safari)
-	else if (MediaRecorder.isTypeSupported(aacMime)) {
+	} else if (MediaRecorder.isTypeSupported(aacMime)) {
 		mimeType = aacMime;
-		// Note: AAC encoding can sometimes benefit from a slightly higher requested bitrate
-		// bitrate = 320000; 
-		console.log("Using MP4/AAC for high quality.");
-	}
-	// 3. Fallback to a simpler, default option
-	else {
-		mimeType = 'audio/webm'; // Chromium default (often Opus)
-		if (!MediaRecorder.isTypeSupported(mimeType)) {
-			mimeType = 'audio/mp4'; // Safari fallback (often AAC)
-		}
-		console.warn(`Falling back to ${mimeType}. Quality may vary.`);
+	} else {
+		mimeType = 'audio/webm';
+		if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'audio/mp4';
 	}
 
-	return {
-		mimeType: mimeType,
-		audioBitsPerSecond: bitrate
-	};
+	return { mimeType, audioBitsPerSecond: bitrate };
 }
 
 class MusicRecorder {
@@ -65,195 +41,404 @@ class MusicRecorder {
 	isPlaying: boolean = false;
 	audio: HTMLAudioElement | null = null;
 
-	recordButton: HTMLButtonElement;
-	playButton: HTMLButtonElement;
-	status: HTMLElement;
-	error: HTMLElement;
+	// Callbacks
+	onRecordingFinished: () => void = () => { };
+	onPlaybackFinished: () => void = () => { };
+	onError: (msg: string) => void = () => { };
 
-	constructor() {
-		this.recordButton = document.getElementById('recordButton') as HTMLButtonElement;
-		this.playButton = document.getElementById('playButton') as HTMLButtonElement;
-		this.status = document.getElementById('status') as HTMLElement;
-		this.error = document.getElementById('error') as HTMLElement;
-
-		this.init();
-	}
-
-	init() {
-		this.setupEventListeners();
-		this.checkCompatibility();
-		// Add global keyboard event listener
-		document.addEventListener('keydown', (event) => {
-			if (event.code === 'Space') {
-				event.preventDefault(); // Prevent default spacebar behavior (e.g., scrolling)
-				if (!this.playButton.disabled) {
-					this.playButton.click();
-				}
-			} else if (event.code === 'Enter') {
-				event.preventDefault(); // Prevent default enter behavior
-				if (!this.recordButton.disabled) {
-					this.recordButton.click();
-				}
-			}
-		});
-	}
-
-	setupEventListeners() {
-		this.recordButton.addEventListener('click', () => this.toggleRecording());
-		this.playButton.addEventListener('click', () => this.playRecording());
-	}
-
-	checkCompatibility() {
-		if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-			this.showError('Your browser does not support audio recording');
-			return false;
-		}
-		return true;
-	}
-
-	async toggleRecording() {
-		if (this.isRecording) {
-			this.stopRecording();
-		} else {
-			await this.startRecording();
-		}
-	}
+	constructor() { }
 
 	async startRecording() {
 		try {
-			this.hideError();
-
 			const stream = await navigator.mediaDevices.getUserMedia(constraints);
 			const options = getBestAudioRecorderOptions();
-
-
 			this.mediaRecorder = new MediaRecorder(stream, options);
 			this.audioChunks = [];
 
 			this.mediaRecorder.ondataavailable = (event) => {
-				if (event.data.size > 0) {
-					this.audioChunks.push(event.data);
-				}
+				if (event.data.size > 0) this.audioChunks.push(event.data);
 			};
 
 			this.mediaRecorder.onstop = () => {
 				if (!this.mediaRecorder) return;
-				this.currentAudioBlob = new Blob(this.audioChunks, {
-					type: this.mediaRecorder.mimeType
-				});
+				this.currentAudioBlob = new Blob(this.audioChunks, { type: this.mediaRecorder.mimeType });
 				this.hasRecording = true;
-				this.updateUI();
-
-				// Stop all tracks in the stream
+				this.isRecording = false;
 				stream.getTracks().forEach(track => track.stop());
+				this.onRecordingFinished();
 			};
 
 			this.mediaRecorder.start();
 			this.isRecording = true;
-
-			this.updateUI();
-
 		} catch (error: any) {
-			this.showError('Failed to start recording: ' + error.message);
+			this.onError('Failed to start recording: ' + error.message);
 		}
 	}
 
 	stopRecording() {
 		if (this.mediaRecorder && this.isRecording) {
 			this.mediaRecorder.stop();
-			this.isRecording = false;
-			this.updateUI();
 		}
 	}
 
 	playRecording() {
-		if (this.isPlaying) {
-			this.stopPlaying();
-			return;
-		}
 		if (this.currentAudioBlob && this.hasRecording) {
 			const audioUrl = URL.createObjectURL(this.currentAudioBlob);
-			const audio = new Audio(audioUrl);
-
-			// Set the volume to maximum (1.0)
-			// Note: This sets the *initial* playback volume.
-			// The user can still adjust their device's master volume.
-			audio.volume = 1.0;
-
-			audio.onended = () => {
+			this.audio = new Audio(audioUrl);
+			this.audio.volume = 1.0;
+			this.audio.onended = () => {
 				this.isPlaying = false;
 				URL.revokeObjectURL(audioUrl);
-				this.updateUI();
+				this.onPlaybackFinished();
 			};
-
-			audio.play().catch(error => {
-				this.showError('Failed to play recording: ' + error.message);
-			});
-
+			this.audio.play().catch(e => this.onError('Playback failed: ' + e.message));
 			this.isPlaying = true;
-			this.audio = audio; // Store the audio object
-			this.recordButton.disabled = true; // Disable record button while playing
-			this.updateUI();
 		} else {
-			this.showError('No recording to play');
+			this.onError('No recording to play');
 		}
 	}
 
 	stopPlaying() {
 		if (this.audio && !this.audio.paused) {
 			this.audio.pause();
-			this.audio.currentTime = 0; // Reset playback to the beginning
+			this.audio.currentTime = 0;
 			this.isPlaying = false;
-			this.updateUI();
 		}
-	}
-
-	updateUI() {
-		// Update Record Button
-		if (this.isRecording) {
-			this.recordButton.classList.add('recording');
-			this.recordButton.innerHTML = '<i class="fas fa-stop"></i><span>Stop</span>'; // Change icon and text
-			this.playButton.disabled = true;
-			this.recordButton.disabled = false; // Always enable stop button
-			this.status.textContent = 'Recording...';
-		} else {
-			this.recordButton.classList.remove('recording');
-			this.recordButton.innerHTML = '<i class="fas fa-microphone"></i><span>Record</span>'; // Change icon and text back
-			// Disable record button if playing
-			this.recordButton.disabled = this.isPlaying;
-			if (this.hasRecording && !this.isPlaying) {
-				this.status.textContent = '';
-			} else if (!this.hasRecording && !this.isPlaying) {
-				this.status.textContent = 'Ready to record';
-			}
-		}
-
-		// Update Play Button
-		if (this.isPlaying) { // If playing, disable play button and update status
-			this.status.textContent = 'Playing...';
-			this.playButton.innerHTML = '<i class="fas fa-stop"></i><span>Stop</span>'; // Change icon and text
-		} else {
-			// Enable play button only if there's a recording and not currently recording
-			this.playButton.disabled = !this.hasRecording || this.isRecording;
-			this.playButton.innerHTML = '<i class="fas fa-play"></i><span>Play</span>'
-		}
-	}
-
-	showError(message: string) {
-		this.error.textContent = message;
-		this.error.style.display = 'block';
-		// Only update status if it's not already showing recording/playing
-		if (!this.isRecording && !this.isPlaying) {
-			this.status.textContent = 'Error occurred';
-		}
-	}
-
-	hideError() {
-		this.error.style.display = 'none';
 	}
 }
 
-// Initialize the app when the page loads
+// --- App Logic ---
+
+class App {
+	manager: RepertoireManager;
+	recorder: MusicRecorder;
+
+	// UI Elements
+	repertoireView: HTMLElement;
+	practiceView: HTMLElement;
+	pieceList: HTMLElement;
+	newPieceForm: HTMLElement;
+	readinessControls: HTMLElement;
+	status: HTMLElement;
+	error: HTMLElement;
+
+	recordButton: HTMLButtonElement;
+	playButton: HTMLButtonElement;
+
+	// State
+	currentPieceId: string | null = null;
+	practiceQueue: Segment[] = [];
+	currentSegment: Segment | null = null;
+
+	constructor() {
+		this.manager = new RepertoireManager();
+		this.recorder = new MusicRecorder();
+
+		// Bind DOM elements
+		this.repertoireView = document.getElementById('repertoire-view')!;
+		this.practiceView = document.getElementById('practice-view')!;
+		this.pieceList = document.getElementById('piece-list')!;
+		this.newPieceForm = document.getElementById('new-piece-form')!;
+		this.readinessControls = document.getElementById('readiness-controls')!;
+		this.status = document.getElementById('status')!;
+		this.error = document.getElementById('error')!;
+
+		this.recordButton = document.getElementById('recordButton') as HTMLButtonElement;
+		this.playButton = document.getElementById('playButton') as HTMLButtonElement;
+
+		this.init();
+	}
+
+	init() {
+		this.setupRepertoireUI();
+		this.setupPracticeUI();
+		this.setupRecorderCallbacks();
+		this.renderRepertoire();
+	}
+
+	setupRepertoireUI() {
+		// Add Piece Button
+		document.getElementById('add-piece-btn')?.addEventListener('click', () => {
+			this.newPieceForm.style.display = 'block';
+			(document.getElementById('add-piece-btn') as HTMLElement).style.display = 'none';
+		});
+
+		// Cancel Add Piece
+		document.getElementById('cancel-piece-btn')?.addEventListener('click', () => {
+			this.newPieceForm.style.display = 'none';
+			(document.getElementById('add-piece-btn') as HTMLElement).style.display = 'block';
+			(document.getElementById('new-piece-name') as HTMLInputElement).value = '';
+			(document.getElementById('new-piece-measures') as HTMLInputElement).value = '';
+		});
+
+		// Save Piece
+		document.getElementById('save-piece-btn')?.addEventListener('click', () => {
+			const nameFn = document.getElementById('new-piece-name') as HTMLInputElement;
+			const measuresFn = document.getElementById('new-piece-measures') as HTMLInputElement;
+
+			if (nameFn.value && measuresFn.value) {
+				this.manager.addPiece(nameFn.value, parseInt(measuresFn.value));
+				this.renderRepertoire();
+
+				// Reset UI
+				this.newPieceForm.style.display = 'none';
+				(document.getElementById('add-piece-btn') as HTMLElement).style.display = 'block';
+				nameFn.value = '';
+				measuresFn.value = '';
+			}
+		});
+
+		// Import/Export
+		document.getElementById('export-btn')?.addEventListener('click', () => {
+			const data = this.manager.exportData();
+			const blob = new Blob([data], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `simple_recorder_backup_${new Date().toISOString().slice(0, 10)}.json`;
+			a.click();
+			URL.revokeObjectURL(url);
+		});
+
+		document.getElementById('import-btn')?.addEventListener('click', () => {
+			document.getElementById('import-file')?.click();
+		});
+
+		document.getElementById('import-file')?.addEventListener('change', (e) => {
+			const file = (e.target as HTMLInputElement).files?.[0];
+			if (!file) return;
+			const reader = new FileReader();
+			reader.onload = (evt) => {
+				if (evt.target?.result) {
+					if (this.manager.importData(evt.target.result as string)) {
+						this.renderRepertoire();
+						alert('Data imported successfully');
+					} else {
+						alert('Failed to import data');
+					}
+				}
+			};
+			reader.readAsText(file);
+		});
+	}
+
+	setupPracticeUI() {
+		// Back Button
+		document.getElementById('back-to-repertoire')?.addEventListener('click', () => {
+			this.stopSession();
+		});
+
+		// Recorder Buttons
+		this.recordButton.addEventListener('click', () => this.toggleRecording());
+		this.playButton.addEventListener('click', () => this.togglePlayback());
+
+		// Readiness Buttons
+		const btns = document.querySelectorAll('.rate-btn');
+		btns.forEach(btn => {
+			btn.addEventListener('click', (e) => {
+				const level = parseInt((e.target as HTMLElement).getAttribute('data-level') || '0');
+				this.handleReadiness(level);
+			});
+		});
+
+		// Keyboard Shortcuts
+		document.addEventListener('keydown', (event) => {
+			if (this.practiceView.style.display === 'none') return;
+
+			if (event.code === 'Space') {
+				event.preventDefault();
+				if (!this.playButton.disabled) this.playButton.click();
+			} else if (event.code === 'Enter') {
+				event.preventDefault();
+				if (!this.recordButton.disabled && this.readinessControls.style.display === 'none') {
+					this.recordButton.click();
+				}
+			}
+		});
+	}
+
+	setupRecorderCallbacks() {
+		this.recorder.onRecordingFinished = () => {
+			this.updateRecorderUI();
+			this.readinessControls.style.display = 'none'; // Hide until they listen? 
+			// Logic choice: can they rate immediately? Or must they listen? 
+			// Requirement: "The user will play the segment into the recorder, listen afterward, and be prompted to assign a readiness value."
+			// So we show it only after playback finishes? Or just enable Play button.
+		};
+
+		this.recorder.onPlaybackFinished = () => {
+			this.updateRecorderUI();
+			this.readinessControls.style.display = 'block'; // Show rating controls after listening
+			this.status.textContent = 'Rate this segment:';
+		};
+
+		this.recorder.onError = (msg) => {
+			this.error.textContent = msg;
+			this.error.style.display = 'block';
+			setTimeout(() => { this.error.style.display = 'none'; }, 3000);
+		};
+	}
+
+	// --- Core Flows ---
+
+	renderRepertoire() {
+		this.pieceList.innerHTML = '';
+		const pieces = this.manager.getPieces();
+
+		if (pieces.length === 0) {
+			this.pieceList.innerHTML = '<div style="color:#666; padding:20px;">No pieces yet. Add one to start!</div>';
+			return;
+		}
+
+		pieces.forEach(piece => {
+			const el = document.createElement('div');
+			el.className = 'piece-item';
+
+			// Calculate progress (segments with readiness 3 / total ORIGINAL segments?)
+			// Or just total length.
+			// Simplified: just show total measures.
+
+			// Calculate progress
+			const score = this.manager.calculateReadiness(piece.id);
+
+			el.innerHTML = `
+                <div class="piece-info">
+                    <strong>${piece.name}</strong><br>
+                    <span style="font-size:0.9em; color:#aaa">${piece.totalMeasures} measures</span>
+                </div>
+                <div style="font-weight:bold; color: ${this.getScoreColor(score)}; margin-right: 15px;">
+                    ${score}%
+                </div>
+                <button class="delete-btn" data-id="${piece.id}"><i class="fas fa-trash"></i></button>
+            `;
+
+			// Delete handler
+			el.querySelector('.delete-btn')?.addEventListener('click', (e) => {
+				e.stopPropagation();
+				if (confirm(`Delete "${piece.name}"?`)) {
+					this.manager.deletePiece(piece.id);
+					this.renderRepertoire();
+				}
+			});
+
+			// Select handler
+			el.addEventListener('click', () => {
+				this.startSession(piece.id);
+			});
+
+			this.pieceList.appendChild(el);
+		});
+	}
+
+	startSession(pieceId: string) {
+		this.currentPieceId = pieceId;
+		const piece = this.manager.getPiece(pieceId);
+		if (!piece) return;
+
+		// Populate Queue
+		this.practiceQueue = this.manager.getPracticeQueue(pieceId);
+
+		// Switch Views
+		this.repertoireView.style.display = 'none';
+		this.practiceView.style.display = 'block';
+		document.getElementById('current-piece-name')!.textContent = piece.name;
+
+		this.loadNextSegment();
+	}
+
+	stopSession() {
+		this.recorder.stopPlaying();
+		this.recorder.stopRecording();
+		this.repertoireView.style.display = 'block';
+		this.practiceView.style.display = 'none';
+		this.currentPieceId = null;
+	}
+
+	loadNextSegment() {
+		if (this.practiceQueue.length === 0) {
+			// End of session
+			alert("Session complete! Great work.");
+			this.stopSession();
+			return;
+		}
+
+		this.currentSegment = this.practiceQueue.shift() || null;
+		if (this.currentSegment) {
+			const display = document.getElementById('current-segment-display')!;
+			if (this.currentSegment.start === this.currentSegment.end) {
+				display.textContent = `Measure ${this.currentSegment.start}`;
+			} else {
+				display.textContent = `Measures ${this.currentSegment.start} - ${this.currentSegment.end}`;
+			}
+
+			// Reset UI for new segment
+			this.readinessControls.style.display = 'none';
+			this.recorder.hasRecording = false;
+			this.recorder.audioChunks = [];
+			this.status.textContent = 'Ready to record';
+			this.updateRecorderUI();
+		}
+	}
+
+	toggleRecording() {
+		if (this.recorder.isRecording) {
+			this.recorder.stopRecording();
+		} else {
+			this.recorder.startRecording();
+			this.status.textContent = 'Recording...';
+			this.updateRecorderUI();
+		}
+	}
+
+	togglePlayback() {
+		if (this.recorder.isPlaying) {
+			this.recorder.stopPlaying();
+		} else {
+			this.recorder.playRecording();
+			this.status.textContent = 'Playing...';
+			this.updateRecorderUI();
+		}
+	}
+
+	handleReadiness(level: number) {
+		if (this.currentPieceId && this.currentSegment) {
+			this.manager.updateSegmentReadiness(this.currentPieceId, this.currentSegment.id, level);
+			// Optionally: show positive feedback?
+			this.loadNextSegment();
+		}
+	}
+
+	updateRecorderUI() {
+		const { isRecording, isPlaying, hasRecording } = this.recorder;
+
+		// Record Button
+		if (isRecording) {
+			this.recordButton.classList.add('recording');
+			this.recordButton.innerHTML = '<i class="fas fa-stop"></i><span>Stop</span>';
+			this.playButton.disabled = true;
+		} else {
+			this.recordButton.classList.remove('recording');
+			this.recordButton.innerHTML = '<i class="fas fa-microphone"></i><span>Record</span>';
+			this.recordButton.disabled = isPlaying;
+		}
+
+		// Play Button
+		if (isPlaying) {
+			this.playButton.innerHTML = '<i class="fas fa-stop"></i><span>Stop</span>';
+		} else {
+			this.playButton.disabled = !hasRecording || isRecording;
+			this.playButton.innerHTML = '<i class="fas fa-play"></i><span>Play</span>';
+		}
+	}
+	getScoreColor(score: number): string {
+		if (score < 25) return '#ff453a'; // Red
+		if (score < 50) return '#ff9f0a'; // Orange
+		if (score < 75) return '#ffd60a'; // Yellow
+		return '#30d158'; // Green
+	}
+}
+
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-	new MusicRecorder();
+	new App();
 });

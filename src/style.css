@@ -1,4 +1,4 @@
-/* CSS from old_index.html */
+/* CSS from old_index.html + Repertoire additions */
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     margin: 0;
@@ -10,27 +10,32 @@ body {
     /* M, */
     align-items: center;
     justify-content: center;
-    max-height: 100vh;
+    min-height: 100vh;
+    /* changed from max-height to allow scrolling if list is long */
 }
 
 .container {
     text-align: center;
-    /* max-width: 300px; */
+    max-width: 600px;
+    /* Constrain width for list view */
     width: 100%;
 }
 
 h1 {
     color: lime;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
     font-weight: 600;
 }
 
+h2 {
+    color: #ffffff;
+    font-size: 1.2rem;
+    margin: 0;
+}
 
 .button {
     width: 25vh;
-    /* 35% of viewport width */
     height: 25vh;
-    /* 20% of viewport height */
     border-radius: 5vh;
     border: none;
     font-size: 16px;
@@ -42,11 +47,85 @@ h1 {
     justify-content: center;
     flex-direction: column;
     margin-top: 5vh;
-    margin-bottom: auto;
     margin-left: auto;
-    /* Center the button horizontally */
-    margin-right: auto
-        /* Center the button horizontally */
+    margin-right: auto;
+}
+
+/* Secondary button style for "Add Piece" etc */
+.secondary-button {
+    background: #1c1c1e;
+    color: #0a84ff;
+    width: 100%;
+    border-radius: 12px;
+}
+
+.button-small {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    background: #0a84ff;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 5px;
+}
+
+.button-small.cancel {
+    background: #3a3a3c;
+}
+
+.button-text {
+    background: none;
+    border: none;
+    color: #0a84ff;
+    cursor: pointer;
+    text-decoration: underline;
+    margin: 0 10px;
+}
+
+.input-field {
+    width: 80%;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 8px;
+    border: 1px solid #3a3a3c;
+    background: #1c1c1e;
+    color: white;
+}
+
+.piece-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.piece-item {
+    background: #1c1c1e;
+    padding: 15px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    color: white;
+    text-align: left;
+}
+
+.piece-item:hover {
+    background: #2c2c2e;
+}
+
+.piece-info {
+    flex-grow: 1;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: #ff453a;
+    padding: 10px;
+    cursor: pointer;
 }
 
 .button:active {
@@ -57,18 +136,15 @@ h1 {
     background: #ff3b30;
     color: white;
     margin-bottom: 20px;
-    /* Space between buttons */
 }
 
 .button i {
     font-size: 8vw;
-    /* Icon size relative to viewport width */
     margin-bottom: 5px;
 }
 
 .button span {
     font-size: 4vw;
-    /* Text size relative to viewport width */
 }
 
 .record-button.recording {
@@ -108,6 +184,70 @@ h1 {
     border-radius: 8px;
     margin-top: 20px;
     display: none;
+}
+
+/* Practice View Styles */
+.practice-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.back-button {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    color: #0a84ff;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.segment-display {
+    color: #ffd60a;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.rating-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.rate-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 15px 5px;
+    border-radius: 10px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    background: #3a3a3c;
+    color: white;
+}
+
+.rate-btn[data-level="0"] {
+    border-bottom: 3px solid #ff453a;
+}
+
+.rate-btn[data-level="1"] {
+    border-bottom: 3px solid #ff9f0a;
+}
+
+.rate-btn[data-level="2"] {
+    border-bottom: 3px solid #ffd60a;
+}
+
+.rate-btn[data-level="3"] {
+    border-bottom: 3px solid #30d158;
+}
+
+.rate-btn:hover {
+    filter: brightness(1.2);
 }
 
 @keyframes pulse {
