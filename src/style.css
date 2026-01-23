@@ -133,7 +133,7 @@ h2 {
 }
 
 .record-button {
-    background: #ff3b30;
+    background: #0a84ff;
     color: white;
     margin-bottom: 20px;
 }
@@ -173,6 +173,20 @@ h2 {
 .play-button {
     background: #34c759;
     color: white;
+
+    /* Match the controls-row .button size */
+    width: 150px;
+    height: 150px;
+    margin: 20px auto;
+    border-radius: 20px;
+}
+
+.play-button i {
+    font-size: 3rem;
+}
+
+.play-button span {
+    font-size: 1.2rem;
 }
 
 .play-button:disabled {

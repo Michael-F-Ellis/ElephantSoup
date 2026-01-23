@@ -40,6 +40,7 @@ class MusicRecorder {
 	hasRecording: boolean = false;
 	isPlaying: boolean = false;
 	audio: HTMLAudioElement | null = null;
+	currentAudioUrl: string | null = null;
 
 	// Callbacks
 	onRecordingFinished: () => void = () => { };
@@ -83,13 +84,13 @@ class MusicRecorder {
 
 	playRecording() {
 		if (this.currentAudioBlob && this.hasRecording) {
-			const audioUrl = URL.createObjectURL(this.currentAudioBlob);
-			this.audio = new Audio(audioUrl);
+			if (this.currentAudioUrl) URL.revokeObjectURL(this.currentAudioUrl);
+			this.currentAudioUrl = URL.createObjectURL(this.currentAudioBlob);
+
+			this.audio = new Audio(this.currentAudioUrl);
 			this.audio.volume = 1.0;
 			this.audio.onended = () => {
-				this.isPlaying = false;
-				URL.revokeObjectURL(audioUrl);
-				this.onPlaybackFinished();
+				this.handlePlaybackEnd();
 			};
 			this.audio.play().catch(e => this.onError('Playback failed: ' + e.message));
 			this.isPlaying = true;
@@ -102,8 +103,17 @@ class MusicRecorder {
 		if (this.audio && !this.audio.paused) {
 			this.audio.pause();
 			this.audio.currentTime = 0;
-			this.isPlaying = false;
+			this.handlePlaybackEnd();
 		}
+	}
+
+	handlePlaybackEnd() {
+		this.isPlaying = false;
+		if (this.currentAudioUrl) {
+			URL.revokeObjectURL(this.currentAudioUrl);
+			this.currentAudioUrl = null;
+		}
+		this.onPlaybackFinished();
 	}
 }
 
@@ -475,11 +485,11 @@ class App {
 		}
 	}
 
-	toggleRecording() {
+	async toggleRecording() {
 		if (this.recorder.isRecording) {
 			this.recorder.stopRecording();
 		} else {
-			this.recorder.startRecording();
+			await this.recorder.startRecording();
 			this.status.textContent = 'Recording...';
 			this.updateRecorderUI();
 		}
