@@ -19,10 +19,46 @@ export interface RepertoireData {
 
 export class RepertoireManager {
 	private data: RepertoireData;
+	private sessions: { [pieceId: string]: Segment[] } = {};
 	private readonly STORAGE_KEY = 'simple_recorder_repertoire';
+	private readonly STORAGE_KEY_SESSIONS = 'simple_recorder_sessions';
 
 	constructor() {
 		this.data = this.loadFromStorage();
+		this.sessions = this.loadSessionsFromStorage();
+	}
+
+	private loadSessionsFromStorage(): { [pieceId: string]: Segment[] } {
+		const stored = localStorage.getItem(this.STORAGE_KEY_SESSIONS);
+		if (stored) {
+			try {
+				return JSON.parse(stored);
+			} catch (e) {
+				console.error("Failed to parse session data", e);
+			}
+		}
+		return {};
+	}
+
+	private saveSessionsToStorage() {
+		localStorage.setItem(this.STORAGE_KEY_SESSIONS, JSON.stringify(this.sessions));
+	}
+
+	// Session Management
+	saveSession(pieceId: string, queue: Segment[]) {
+		this.sessions[pieceId] = queue;
+		this.saveSessionsToStorage();
+	}
+
+	getSession(pieceId: string): Segment[] | null {
+		return this.sessions[pieceId] || null;
+	}
+
+	clearSession(pieceId: string) {
+		if (this.sessions[pieceId]) {
+			delete this.sessions[pieceId];
+			this.saveSessionsToStorage();
+		}
 	}
 
 	private loadFromStorage(): RepertoireData {
@@ -97,6 +133,7 @@ export class RepertoireManager {
 	deletePiece(id: string) {
 		this.data.repertoire = this.data.repertoire.filter(p => p.id !== id);
 		this.saveToStorage();
+		this.clearSession(id);
 	}
 
 	/**

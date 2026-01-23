@@ -130,6 +130,13 @@ class App {
 	practiceQueue: Segment[] = [];
 	currentSegment: Segment | null = null;
 
+	// Modal Elements
+	resumeModal: HTMLElement;
+	resumePieceName: HTMLElement;
+	resumeBtn: HTMLElement;
+	discardBtn: HTMLElement;
+	cancelResumeBtn: HTMLElement;
+
 	constructor() {
 		this.manager = new RepertoireManager();
 		this.recorder = new MusicRecorder();
@@ -146,6 +153,13 @@ class App {
 		this.recordButton = document.getElementById('recordButton') as HTMLButtonElement;
 		this.playButton = document.getElementById('playButton') as HTMLButtonElement;
 
+		// Modal
+		this.resumeModal = document.getElementById('resume-modal')!;
+		this.resumePieceName = document.getElementById('resume-piece-name')!;
+		this.resumeBtn = document.getElementById('resume-btn')!;
+		this.discardBtn = document.getElementById('discard-btn')!;
+		this.cancelResumeBtn = document.getElementById('cancel-resume-btn')!;
+
 		this.init();
 	}
 
@@ -153,7 +167,29 @@ class App {
 		this.setupRepertoireUI();
 		this.setupPracticeUI();
 		this.setupRecorderCallbacks();
+		this.setupModalCallbacks();
 		this.renderRepertoire();
+	}
+
+	setupModalCallbacks() {
+		this.resumeBtn.addEventListener('click', () => {
+			if (this.currentPieceId) {
+				this.resumeSession(this.currentPieceId);
+				this.resumeModal.style.display = 'none';
+			}
+		});
+
+		this.discardBtn.addEventListener('click', () => {
+			if (this.currentPieceId) {
+				this.discardAndStartSession(this.currentPieceId);
+				this.resumeModal.style.display = 'none';
+			}
+		});
+
+		this.cancelResumeBtn.addEventListener('click', () => {
+			this.currentPieceId = null;
+			this.resumeModal.style.display = 'none';
+		});
 	}
 
 	setupRepertoireUI() {
@@ -223,9 +259,9 @@ class App {
 	}
 
 	setupPracticeUI() {
-		// Back Button
+		// Back/Suspend Button
 		document.getElementById('back-to-repertoire')?.addEventListener('click', () => {
-			this.stopSession();
+			this.suspendSession();
 		});
 
 		// Recorder Buttons
@@ -244,12 +280,16 @@ class App {
 		// Keyboard Shortcuts
 		document.addEventListener('keydown', (event) => {
 			if (this.practiceView.style.display === 'none') return;
+			// Ignore keys if modal is open
+			if (this.resumeModal.style.display === 'flex') return;
 
 			if (event.code === 'Space') {
 				event.preventDefault();
 				if (!this.playButton.disabled) this.playButton.click();
 			} else if (event.code === 'Enter') {
 				event.preventDefault();
+				// If readiness controls are visible, maybe map 1-4 keys? 
+				// For now, Enter records if ready.
 				if (!this.recordButton.disabled && this.readinessControls.style.display === 'none') {
 					this.recordButton.click();
 				}
@@ -294,17 +334,18 @@ class App {
 			const el = document.createElement('div');
 			el.className = 'piece-item';
 
-			// Calculate progress (segments with readiness 3 / total ORIGINAL segments?)
-			// Or just total length.
-			// Simplified: just show total measures.
-
 			// Calculate progress
 			const score = this.manager.calculateReadiness(piece.id);
+
+			// Check if has saved session
+			const hasSession = !!this.manager.getSession(piece.id);
+			const sessionIndicator = hasSession ? '<span style="color: #0a84ff; margin-right:8px; font-size:0.8em"><i class="fas fa-pause-circle"></i> Resumable</span>' : '';
 
 			el.innerHTML = `
                 <div class="piece-info">
                     <strong>${piece.name}</strong><br>
                     <span style="font-size:0.9em; color:#aaa">${piece.totalMeasures} measures</span>
+					${hasSession ? '<br>' + sessionIndicator : ''}
                 </div>
                 <div style="font-weight:bold; color: ${this.getScoreColor(score)}; margin-right: 15px;">
                     ${score}%
@@ -332,11 +373,40 @@ class App {
 
 	startSession(pieceId: string) {
 		this.currentPieceId = pieceId;
+		const session = this.manager.getSession(pieceId);
+
+		if (session) {
+			const piece = this.manager.getPiece(pieceId);
+			if (piece) {
+				this.resumePieceName.textContent = piece.name;
+				this.resumeModal.style.display = 'flex'; // Use flex to center
+			}
+		} else {
+			this.discardAndStartSession(pieceId);
+		}
+	}
+
+	discardAndStartSession(pieceId: string) {
+		this.manager.clearSession(pieceId);
+		this.practiceQueue = this.manager.getPracticeQueue(pieceId);
+		this.activateSessionView(pieceId);
+	}
+
+	resumeSession(pieceId: string) {
+		const queue = this.manager.getSession(pieceId);
+		if (queue) {
+			this.practiceQueue = queue;
+			this.manager.clearSession(pieceId); // Clear from storage once resumed
+			this.activateSessionView(pieceId);
+		} else {
+			// Fallback
+			this.discardAndStartSession(pieceId);
+		}
+	}
+
+	activateSessionView(pieceId: string) {
 		const piece = this.manager.getPiece(pieceId);
 		if (!piece) return;
-
-		// Populate Queue
-		this.practiceQueue = this.manager.getPracticeQueue(pieceId);
 
 		// Switch Views
 		this.repertoireView.style.display = 'none';
@@ -346,12 +416,37 @@ class App {
 		this.loadNextSegment();
 	}
 
+	suspendSession() {
+		if (this.currentPieceId && this.practiceQueue.length >= 0) {
+			// If we have a current segment, push it back to the START of the queue
+			// so it is the first thing resumed.
+			if (this.currentSegment) {
+				this.practiceQueue.unshift(this.currentSegment);
+			}
+
+			if (this.practiceQueue.length > 0) {
+				this.manager.saveSession(this.currentPieceId, this.practiceQueue);
+				// Stop any active media
+				this.recorder.stopPlaying();
+				this.recorder.stopRecording();
+
+				this.stopSession(); // don't clear, we just saved
+			} else {
+				// Nothing to save? Just quit.
+				this.stopSession();
+			}
+		}
+	}
+
 	stopSession() {
 		this.recorder.stopPlaying();
 		this.recorder.stopRecording();
 		this.repertoireView.style.display = 'block';
 		this.practiceView.style.display = 'none';
 		this.currentPieceId = null;
+		this.currentSegment = null;
+		// Refresh list to show resumable status
+		this.renderRepertoire();
 	}
 
 	loadNextSegment() {

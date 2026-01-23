@@ -145,6 +145,24 @@ h2 {
 
 .button span {
     font-size: 4vw;
+    margin-bottom: 5px;
+    /* Added spacing to match original */
+}
+
+/* Adjust button internal layout for row usage */
+.controls-row .button {
+    width: 150px;
+    height: 150px;
+    margin: 0;
+    border-radius: 20px;
+}
+
+.controls-row .button i {
+    font-size: 3rem;
+}
+
+.controls-row .button span {
+    font-size: 1.2rem;
 }
 
 .record-button.recording {
@@ -262,4 +280,47 @@ h2 {
     100% {
         transform: scale(1);
     }
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #1c1c1e;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 400px;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+}
+
+.modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal-actions .button {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 15px;
+    font-size: 1rem;
+    border-radius: 10px;
 }
