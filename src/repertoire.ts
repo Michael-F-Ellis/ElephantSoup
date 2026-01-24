@@ -20,8 +20,8 @@ export interface RepertoireData {
 export class RepertoireManager {
 	private data: RepertoireData;
 	private sessions: { [pieceId: string]: Segment[] } = {};
-	private readonly STORAGE_KEY = 'simple_recorder_repertoire';
-	private readonly STORAGE_KEY_SESSIONS = 'simple_recorder_sessions';
+	private readonly STORAGE_KEY = 'elephant_soup_repertoire';
+	private readonly STORAGE_KEY_SESSIONS = 'elephant_soup_sessions';
 
 	constructor() {
 		this.data = this.loadFromStorage();

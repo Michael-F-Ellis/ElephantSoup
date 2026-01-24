@@ -1,10 +1,10 @@
-# SimpleRecorder
-A minimalist web app for music practice and learning.
+# Elephant Soup
+A minimalist web app for mastering music repertoire, one bite at a time.
 
-<img src=screen.png width=150>
+<img src="public/logo.png" width=150>
 
 ## Philosophy
-Credible research [^1] shows that the single most powerful learning tool is *frequent low-stakes testing with immediate feedback*. That's what SimpleRecorder is designed to do.
+Credible research [^1] shows that the single most powerful learning tool is *frequent low-stakes testing with immediate feedback*. That's what Elephant Soup is designed to do.
 
 It's intentionally the simplest possible interface: Hit Record, then play or sing a short passage you're working on. 
 
@@ -15,12 +15,12 @@ Then take another shot at it.  *Lather, rinse, repeat.*
 [^1]: *Brown, Peter C. Make It Stick : the Science of Successful Learning. Cambridge, Massachusetts :The Belknap Press of Harvard University Press, 2014.*
 
 ## Anti-Philosophy
-SimpleRecorder is not a DAW or a looper.  It doesn't even support saving your audio as a file.  There's no metronome, equalizer, tuner, waveform display, practice log, overdubbing, multi-tracking, FX, ... or anything except a distraction-free way to record and listen to short segments of your playing and singing.
+Elephant Soup is not a DAW or a looper.  It doesn't even support saving your audio as a file.  There's no metronome, equalizer, tuner, waveform display, practice log, overdubbing, multi-tracking, FX, ... or anything except a distraction-free way to record and listen to short segments of your playing and singing.
 
 DAW's are great for producing and sound engineering, but I find I get sidetracked playing with settings and features when what I really need to be doing is getting a piece into my voice and fingers so I can perform it live.
 
 ## Getting started
-The latest stable version will always be available for immediate use from my GitHub Pages at [michael-f-ellis/github.com/SimpleRecorder](https://michael-f-ellis.github.io/simplerecorder/).
+The latest stable version will always be available for immediate use from my GitHub Pages at [michael-f-ellis/github.com/ElephantSoup](https://michael-f-ellis.github.io/elephantsoup/).
 
 You'll need a modern web browser (Chrome, Firefox, Edge, Safari) and a computer, tablet or smartphone.
 
@@ -30,15 +30,15 @@ See below if you want to install it locally.
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/SimpleRecorder.git
-    cd SimpleRecorder
+    git clone https://github.com/your-username/ElephantSoup.git
+    cd ElephantSoup
     ```
 2.  **Open `index.html`:**
     Simply open the `index.html` file in your web browser. No server-side setup is required.
 
 ## Usage
 
-1.  **Grant Microphone Access:** The first time you use SimpleRecorder, your browser will ask for permission to access your microphone. Please grant this permission.
+1.  **Grant Microphone Access:** The first time you use Elephant Soup, your browser will ask for permission to access your microphone. Please grant this permission.
 2.  **Start Recording:** Click the "Record" button to begin recording.
 3.  **Stop Recording:** Click the "Record" button again to end the recording.
 4.  **Play:** Use the "Play" button review your recording. You can stop playback by clicking it again.

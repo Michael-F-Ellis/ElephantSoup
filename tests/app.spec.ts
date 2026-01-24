@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Simple Music Recorder', () => {
+test.describe('Elephant Soup', () => {
 	test.beforeEach(async ({ context, page }) => {
 		// Grant microphone permission
 		await context.grantPermissions(['microphone']);
@@ -8,7 +8,7 @@ test.describe('Simple Music Recorder', () => {
 	});
 
 	test('has correct title', async ({ page }) => {
-		await expect(page).toHaveTitle(/Simple Music Recorder/);
+		await expect(page).toHaveTitle(/Elephant Soup/);
 	});
 
 	test('shows repertoire view by default', async ({ page }) => {
@@ -93,7 +93,7 @@ test.describe('Simple Music Recorder', () => {
 		// We check localStorage to see if the PREVIOUS segment got saved with readiness 2.
 
 		const localStorageData = await page.evaluate(() => {
-			return localStorage.getItem('simple_recorder_repertoire');
+			return localStorage.getItem('elephant_soup_repertoire');
 		});
 
 		expect(localStorageData).toBeTruthy();
@@ -104,6 +104,7 @@ test.describe('Simple Music Recorder', () => {
 		// Find the segment that has readiness === 2
 		const practicedSegment = piece.segments.find((s: any) => s.readiness === 2);
 		expect(practicedSegment).toBeTruthy();
+
 	});
 
 	test('can suspend and resume a session', async ({ page }) => {
@@ -249,7 +250,7 @@ test.describe('Simple Music Recorder', () => {
 		await expect(page.locator('#piece-list')).toContainText('No pieces yet');
 
 		const localStorageData = await page.evaluate(() => {
-			return localStorage.getItem('simple_recorder_repertoire');
+			return localStorage.getItem('elephant_soup_repertoire');
 		});
 		const parsed = JSON.parse(localStorageData!);
 		expect(parsed.repertoire).toHaveLength(0);
