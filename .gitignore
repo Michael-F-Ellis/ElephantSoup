@@ -24,3 +24,6 @@ dist/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Deployment script
+deploy.py

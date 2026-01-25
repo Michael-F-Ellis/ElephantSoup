@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Deployment script for the SimpleRecorder web application (Vite/TypeScript version).
+Deployment script for the ElephantSoup web application (Vite/TypeScript version).
 
 This script automates the deployment process by:
 1. Running `npm run build` to generate the distribution files in `dist/`
@@ -8,8 +8,8 @@ This script automates the deployment process by:
 3. Committing the changes in the target repository
 4. Pushing to GitHub
 
-Target repository: michael-f-ellis.github.io
-Target directory: simplerecorder
+Target repository: your-username.github.io
+Target directory: elephantsoup
 """
 
 import shutil
@@ -28,8 +28,9 @@ def main():
 
     # 2. Define Source and Destination
     source_dir = "dist"
-    target_repo_dir = "../michael-f-ellis.github.io"
-    target_sub_dir = "simplerecorder"
+    # UPDATE THIS PATH to point to your local clone of your User Pages repo
+    target_repo_dir = "../your-username.github.io"
+    target_sub_dir = "elephantsoup"
     destination_full_path = os.path.join(target_repo_dir, target_sub_dir)
 
     print(f"Deploying from {source_dir} to {destination_full_path}...")
@@ -67,7 +68,7 @@ def main():
         
         # Commit
         # Use check=False because if there are no changes, commit returns 1
-        subprocess.run(["git", "commit", "-m", "Update simplerecorder (Vite build)"], check=False)
+        subprocess.run(["git", "commit", "-m", "Update elephantsoup (Vite build)"], check=False)
         
         # Push
         subprocess.run(["git", "push"], check=True)
