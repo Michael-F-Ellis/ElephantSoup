@@ -1,63 +1,66 @@
 # Elephant Soup
-A minimalist web app for mastering music repertoire, one bite at a time.
+### "How do you eat an elephant? One bite at a time."
+
+Elephant Soup is a minimalist web app designed to help musicians master complex repertoire. By breaking a piece down into small, distinct segments (measures) and continually re-assembling them, it helps you build secure, performance-ready memory.
+
+**[Try it Live](https://michael-f-ellis.github.io/elephantsoup/)**
 
 <img src="public/logo.png" width=150>
 
 ## Philosophy
 Credible research [^1] shows that the single most powerful learning tool is *frequent low-stakes testing with immediate feedback*. That's what Elephant Soup is designed to do.
 
-It's intentionally the simplest possible interface: Hit Record, then play or sing a short passage you're working on. 
-
-Then hit Stop, hit Play and *listen*. Ask yourself "What, specifically, can I do to make that better?"
-
-Then take another shot at it.  *Lather, rinse, repeat.*
+It's intentionally the simplest possible interface: The app will cue you to practice a segment.  Hit Record, then play or sing the segment. Then hit Stop, hit Play and *listen*. Ask yourself "What, specifically, can I do to make that better?" Then take another shot at it 
 
 [^1]: *Brown, Peter C. Make It Stick : the Science of Successful Learning. Cambridge, Massachusetts :The Belknap Press of Harvard University Press, 2014.*
 
-## Anti-Philosophy
-Elephant Soup is not a DAW or a looper.  It doesn't even support saving your audio as a file.  There's no metronome, equalizer, tuner, waveform display, practice log, overdubbing, multi-tracking, FX, ... or anything except a distraction-free way to record and listen to short segments of your playing and singing.
+## How It Works
 
-DAW's are great for producing and sound engineering, but I find I get sidetracked playing with settings and features when what I really need to be doing is getting a piece into my voice and fingers so I can perform it live.
+### Targeted Efficiency
+Elephant Soup uses your assessments of difficulty to ensure that you spend the most time on the most difficult sections, preventing mindless run-throughs of parts you already know.
 
-## Getting started
-The latest stable version will always be available for immediate use from my GitHub Pages at [michael-f-ellis/github.com/ElephantSoup](https://michael-f-ellis.github.io/elephantsoup/).
+### Sequence Learning
+Unlike flashcard apps (spaced repetition) that focus on independent items, Elephant Soup tackles **sequences**—be it a piece of music, a poem, or lines from a play. 
+- It starts by presenting individual segments.
+- As you rate adjacent segments as "Ready", the app gradually groups them together.
+- Over time, you build larger and larger chunks of the piece until the whole sequence is mastered.
 
-You'll need a modern web browser (Chrome, Firefox, Edge, Safari) and a computer, tablet or smartphone.
+### The Workflow
+1.  **Add a Piece**: Name your piece and define the number of measures (or segments).
+2.  **Start Practice**: The app creates a shuffled queue of segments for the current session.
+3.  **The Loop**:
+    - **Record** your attempt at the presented segment.
+    - **Listen** back critically.
+    - **Rate** your readiness:
+        - *Not Ready*: Needs more work.
+        - *Copable*: Almost there.
+        - *Ready*: Secure.
+4.  **Progress**: Your ratings don't change the current session's queue, but they determine how segments are grouped and chosen for the *next* session.
 
-See below if you want to install it locally.
+## Getting Started
+The latest stable version is available at [michael-f-ellis.github.io/elephantsoup](https://michael-f-ellis.github.io/elephantsoup/).
 
-### Installation (Local Development)
+You'll need a modern web browser (Chrome, Firefox, Edge, Safari) and a microphone.
+
+## Installation (Local Development)
+If you want to run the code locally or contribute:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/ElephantSoup.git
+    git clone https://github.com/Michael-F-Ellis/ElephantSoup.git
     cd ElephantSoup
     ```
-2.  **Open `index.html`:**
-    Simply open the `index.html` file in your web browser. No server-side setup is required.
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+3.  **Run the dev server:**
+    ```bash
+    npm run dev
+    ```
 
-## Usage
-
-1.  **Grant Microphone Access:** The first time you use Elephant Soup, your browser will ask for permission to access your microphone. Please grant this permission.
-2.  **Start Recording:** Click the "Record" button to begin recording.
-3.  **Stop Recording:** Click the "Record" button again to end the recording.
-4.  **Play:** Use the "Play" button review your recording. You can stop playback by clicking it again.
-
-## Hands-Free Operation
-If you have a remote page turner pedal (e.g Donner DBM-1) that acts like a virtual keyboard, set it to send *Enter* to toggle Record and *Space* to toggle Play.
-
-
-
-## Contributing
-
-I'm not intending to add more features to the app. That would be contrary to my intent to keep it as simple and distraction-free as possible.  You're certainly welcome to create a fork and add whatever features you want.
-
-Bug fixes and tweaks to UI appearance are always welcome.
+## History
+This app evolved from [SimpleRecorder](https://github.com/Michael-F-Ellis/SimpleRecorder), expanding the core recording philosophy into a structured practice tool.
 
 ## License
-
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-For any questions or feedback, please open an issue on GitHub.
