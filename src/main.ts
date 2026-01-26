@@ -1,121 +1,11 @@
 import './style.css'
-import { RepertoireManager, Segment } from './repertoire';
+import { RepertoireManager } from './repertoire';
+import { Segment } from './types';
+import { MusicRecorder } from './recorder';
 
-// --- Recorder Logic (Refactored) ---
+// --- App Logic ---
 
-const constraints = {
-	audio: {
-		sampleRate: { ideal: 44100 },
-		channelCount: { ideal: 2 },
-		echoCancellation: false,
-		noiseSuppression: false,
-		autoGainControl: false
-	},
-	video: false
-};
 
-function getBestAudioRecorderOptions(): MediaRecorderOptions {
-	const opusMime = 'audio/webm; codecs=opus';
-	const aacMime = 'audio/mp4; codecs=mp4a.40.2';
-	const bitrate = 256000;
-	let mimeType: string = '';
-
-	if (MediaRecorder.isTypeSupported(opusMime)) {
-		mimeType = opusMime;
-	} else if (MediaRecorder.isTypeSupported(aacMime)) {
-		mimeType = aacMime;
-	} else {
-		mimeType = 'audio/webm';
-		if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'audio/mp4';
-	}
-
-	return { mimeType, audioBitsPerSecond: bitrate };
-}
-
-class MusicRecorder {
-	mediaRecorder: MediaRecorder | null = null;
-	audioChunks: Blob[] = [];
-	currentAudioBlob: Blob | null = null;
-	isRecording: boolean = false;
-	hasRecording: boolean = false;
-	isPlaying: boolean = false;
-	audio: HTMLAudioElement | null = null;
-	currentAudioUrl: string | null = null;
-
-	// Callbacks
-	onRecordingFinished: () => void = () => { };
-	onPlaybackFinished: () => void = () => { };
-	onError: (msg: string) => void = () => { };
-
-	constructor() { }
-
-	async startRecording() {
-		try {
-			const stream = await navigator.mediaDevices.getUserMedia(constraints);
-			const options = getBestAudioRecorderOptions();
-			this.mediaRecorder = new MediaRecorder(stream, options);
-			this.audioChunks = [];
-
-			this.mediaRecorder.ondataavailable = (event) => {
-				if (event.data.size > 0) this.audioChunks.push(event.data);
-			};
-
-			this.mediaRecorder.onstop = () => {
-				if (!this.mediaRecorder) return;
-				this.currentAudioBlob = new Blob(this.audioChunks, { type: this.mediaRecorder.mimeType });
-				this.hasRecording = true;
-				this.isRecording = false;
-				stream.getTracks().forEach(track => track.stop());
-				this.onRecordingFinished();
-			};
-
-			this.mediaRecorder.start();
-			this.isRecording = true;
-		} catch (error: any) {
-			this.onError('Failed to start recording: ' + error.message);
-		}
-	}
-
-	stopRecording() {
-		if (this.mediaRecorder && this.isRecording) {
-			this.mediaRecorder.stop();
-		}
-	}
-
-	playRecording() {
-		if (this.currentAudioBlob && this.hasRecording) {
-			if (this.currentAudioUrl) URL.revokeObjectURL(this.currentAudioUrl);
-			this.currentAudioUrl = URL.createObjectURL(this.currentAudioBlob);
-
-			this.audio = new Audio(this.currentAudioUrl);
-			this.audio.volume = 1.0;
-			this.audio.onended = () => {
-				this.handlePlaybackEnd();
-			};
-			this.audio.play().catch(e => this.onError('Playback failed: ' + e.message));
-			this.isPlaying = true;
-		} else {
-			this.onError('No recording to play');
-		}
-	}
-
-	stopPlaying() {
-		if (this.audio && !this.audio.paused) {
-			this.audio.pause();
-			this.audio.currentTime = 0;
-			this.handlePlaybackEnd();
-		}
-	}
-
-	handlePlaybackEnd() {
-		this.isPlaying = false;
-		if (this.currentAudioUrl) {
-			URL.revokeObjectURL(this.currentAudioUrl);
-			this.currentAudioUrl = null;
-		}
-		this.onPlaybackFinished();
-	}
-}
 
 // --- App Logic ---
 
@@ -331,31 +221,83 @@ class App {
 
 	// --- Core Flows ---
 
+	getAllPiecesSorted(): { piece: any, score: number, isMastered: boolean, nextDate?: Date }[] {
+		const pieces = this.manager.getPieces();
+		const enriched = pieces.map(piece => ({
+			piece,
+			score: this.manager.calculateReadiness(piece.id),
+			isMastered: this.manager.isMastered(piece.id),
+			nextDate: piece.nextDate ? new Date(piece.nextDate) : undefined
+		}));
+
+		// Sort logic:
+		// 1. Unmastered first (Worst score first -> Ascending score)
+		// 2. Mastered last (Earliest MaxDate first -> Ascending nextDate)
+		enriched.sort((a, b) => {
+			if (a.isMastered !== b.isMastered) {
+				return a.isMastered ? 1 : -1; // Unmastered first
+			}
+
+			if (!a.isMastered) {
+				// Both unmastered: sort by score (asc)
+				return a.score - b.score;
+			} else {
+				// Both mastered: sort by due date (asc)
+				// If no date (shouldn't happen with migration), treat as far future
+				const dateA = a.nextDate?.getTime() || Number.MAX_VALUE;
+				const dateB = b.nextDate?.getTime() || Number.MAX_VALUE;
+				return dateA - dateB;
+			}
+		});
+
+		return enriched;
+	}
+
+
 	renderRepertoire() {
 		this.pieceList.innerHTML = '';
-		const pieces = this.manager.getPieces();
+		const sortedItems = this.getAllPiecesSorted();
 
-		if (pieces.length === 0) {
+		if (sortedItems.length === 0) {
 			this.pieceList.innerHTML = '<div style="color:#666; padding:20px;">No pieces yet. Add one to start!</div>';
 			return;
 		}
 
-		pieces.forEach(piece => {
+		sortedItems.forEach(item => {
+			const { piece, score } = item;
 			const el = document.createElement('div');
 			el.className = 'piece-item';
 
-			// Calculate progress
-			const score = this.manager.calculateReadiness(piece.id);
+
 
 			// Check if has saved session
 			const hasSession = !!this.manager.getSession(piece.id);
 			const sessionIndicator = hasSession ? '<span style="color: #0a84ff; margin-right:8px; font-size:0.8em"><i class="fas fa-pause-circle"></i> Resumable</span>' : '';
+
+			// Due Date
+			let dueDisplay = '';
+			if (piece.nextDate) {
+				const due = new Date(piece.nextDate);
+				const now = new Date();
+				const isFuture = due > now;
+				// Simple formatting: Today, Tomorrow, or Date
+				// Using toLocaleDateString for simplicity
+				// Add style: grey if future, red/bold if past/today?
+				// User didn't specify, so let's keep it subtle for now.
+				// If future: "Due: [Date]"
+				// If now/past: "Due: Now" or just nothing (logic implies it's in the queue anyway)
+
+				if (isFuture) {
+					dueDisplay = `<br><span style="color: #888; font-size: 0.8em"><i class="fas fa-clock"></i> Due: ${due.toLocaleDateString()}</span>`;
+				}
+			}
 
 			el.innerHTML = `
                 <div class="piece-info">
                     <strong>${piece.name}</strong><br>
                     <span style="font-size:0.9em; color:#aaa">${piece.totalMeasures} measures</span>
 					${hasSession ? '<br>' + sessionIndicator : ''}
+					${dueDisplay}
                 </div>
                 <div style="font-weight:bold; color: ${this.getScoreColor(score)}; margin-right: 15px;">
                     ${score}%

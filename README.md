@@ -10,7 +10,7 @@ Elephant Soup is a minimalist web app designed to help musicians master complex 
 ## Philosophy
 Credible research [^1] shows that the single most powerful learning tool is *frequent low-stakes testing with immediate feedback*. That's what Elephant Soup is designed to do.
 
-It's intentionally the simplest possible interface: The app will cue you to practice a segment.  Hit Record, then play or sing the segment. Then hit Stop, hit Play and *listen*. Ask yourself "What, specifically, can I do to make that better?" Then take another shot at it 
+It's intentionally the simplest possible interface: The app will cue you to practice a segment.  Hit Record, then play or sing the segment. Then hit Stop, hit Play and *listen*. Ask yourself "What, specifically, can I do to make that better?" Then take another shot at it.
 
 [^1]: *Brown, Peter C. Make It Stick : the Science of Successful Learning. Cambridge, Massachusetts :The Belknap Press of Harvard University Press, 2014.*
 
@@ -24,6 +24,16 @@ Unlike flashcard apps (spaced repetition) that focus on independent items, Eleph
 - It starts by presenting individual segments.
 - As you rate adjacent segments as "Ready", the app gradually groups them together.
 - Over time, you build larger and larger chunks of the piece until the whole sequence is mastered.
+
+### Maintenance Mode (Spaced Repetition)
+Once a piece is fully merged into a single segment (Mastered), Elephant Soup switches to **Spaced Repetition** mode to help you maintain it efficiently.
+Instead of random access, the piece is scheduled for review based on your rating:
+- **Rate 0**: Review Today
+- **Rate 1**: Review Tomorrow
+- **Rate 2**: Review in `max(1 day, elapsed_time)`
+- **Rate 3**: Review in `max(2 days, 2 * elapsed_time)`
+
+The goal is to expand the review interval up to a maximum of 1 year.
 
 ### The Workflow
 1.  **Add a Piece**: Name your piece and define the number of measures (or segments).

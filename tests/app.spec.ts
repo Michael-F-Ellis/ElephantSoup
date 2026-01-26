@@ -287,4 +287,126 @@ test.describe('Elephant Soup', () => {
 		await expect(page.locator('.piece-item', { hasText: 'Export Piece 1' })).toBeVisible();
 		await expect(page.locator('.piece-item', { hasText: 'Export Piece 2' })).toBeVisible();
 	});
+	test('can schedule spaced repetition', async ({ page }) => {
+		// 1. Create a 1-measure piece (automatically 1 active segment)
+		await page.locator('#add-piece-btn').click();
+		await page.locator('#new-piece-name').fill('Spaced Repetition Song');
+		await page.locator('#new-piece-measures').fill('1');
+		await page.locator('#save-piece-btn').click();
+
+		const pieceItem = page.locator('.piece-item', { hasText: 'Spaced Repetition Song' });
+		await expect(pieceItem).toBeVisible();
+
+		// 2. Start Practice
+		await pieceItem.click();
+		await expect(page.locator('#practice-view')).toBeVisible();
+
+		// 3. Record & Rate 1 (Tomorrow)
+		const recordBtn = page.locator('#recordButton');
+		await recordBtn.click(); // Start
+		await page.waitForTimeout(100);
+		await recordBtn.click({ force: true }); // Stop
+
+		await page.locator('#playButton').click();
+		const rateControls = page.locator('#readiness-controls');
+		await expect(rateControls).toBeVisible({ timeout: 5000 });
+
+		// Rate 1 (Copable) -> Should schedule for tomorrow
+		await rateControls.locator('.rate-btn[data-level="1"]').click();
+
+		// Handle session complete alert
+		page.on('dialog', async dialog => {
+			await dialog.dismiss();
+		});
+
+		// Wait for return to Repertoire View
+		await expect(page.locator('#repertoire-view')).toBeVisible();
+
+		// 4. Verify Next Date
+		// Get the stored data to verify nextDate
+		const localStorageData = await page.evaluate(() => {
+			return localStorage.getItem('elephant_soup_repertoire');
+		});
+		const data = JSON.parse(localStorageData!);
+		const piece = data.repertoire.find((p: any) => p.name === 'Spaced Repetition Song');
+
+		expect(piece.nextDate).toBeTruthy();
+		const nextDate = new Date(piece.nextDate);
+		const now = new Date();
+		const oneDay = 24 * 60 * 60 * 1000;
+		// Allow some delta for execution time, but basically should be >= now + 1 day - small buffer
+		// Actually, logic is `new Date(now.getTime() + oneDayMs)`
+		// So difference should be very close to oneDay
+		const diff = nextDate.getTime() - now.getTime();
+		expect(Math.abs(diff - oneDay)).toBeLessThan(5000); // within 5 seconds
+
+		// 5. Verify UI indication
+		// Since it is future, "Due:" should be visible
+		// We might need to refresh or if `renderRepertoire` is called after session end (it is)
+		await expect(pieceItem).toContainText('Due:');
+	});
+	test('schedules spaced repetition for fully merged piece', async ({ page }) => {
+		// 1. Create a 2-measure piece
+		await page.locator('#add-piece-btn').click();
+		await page.locator('#new-piece-name').fill('Merged Song');
+		await page.locator('#new-piece-measures').fill('2');
+		await page.locator('#save-piece-btn').click();
+
+		const pieceItem = page.locator('.piece-item', { hasText: 'Merged Song' });
+
+		// 2. Start Practice -> Queue should have [1], [2] (shuffled)
+		await pieceItem.click();
+		await expect(page.locator('#practice-view')).toBeVisible();
+
+		// We need to rate both measures 1 and 2 as "Ready" (3) to trigger a merge.
+
+		// Loop until we have rated 2 active segments as 3
+		for (let i = 0; i < 2; i++) {
+			const recordBtn = page.locator('#recordButton');
+			await recordBtn.click();
+			await page.waitForTimeout(100);
+			await recordBtn.click({ force: true });
+			await page.locator('#playButton').click();
+			const rateControls = page.locator('#readiness-controls');
+			await expect(rateControls).toBeVisible({ timeout: 5000 });
+			// Rate 3 (Ready)
+			await rateControls.locator('.rate-btn[data-level="3"]').click();
+			// Handled, next segment loads.
+		}
+
+		// Handle alert if it appears (queue empty)
+		page.on('dialog', async dialog => {
+			await dialog.dismiss();
+		});
+
+		// Wait for return to Repertoire View
+		await expect(page.locator('#repertoire-view')).toBeVisible();
+
+		// 3. Start Session AGAIN. Queue should now be merged [1-2].
+		await pieceItem.click();
+		await expect(page.locator('#practice-view')).toBeVisible();
+
+		const segmentDisplay = page.locator('#current-segment-display');
+		await expect(segmentDisplay).toContainText('1 - 2');
+
+		// 4. Rate the merged segment [1-2] as 2 (Copable) -> Should trigger Spaced Repetition Logic
+		const recordBtn = page.locator('#recordButton');
+		await recordBtn.click();
+		await page.waitForTimeout(100);
+		await recordBtn.click({ force: true });
+		await page.locator('#playButton').click();
+		await page.locator('#readiness-controls').locator('.rate-btn[data-level="2"]').click();
+
+		await expect(page.locator('#repertoire-view')).toBeVisible();
+
+		// 5. Verify nextDate
+		const localStorageData = await page.evaluate(() => {
+			return localStorage.getItem('elephant_soup_repertoire');
+		});
+		const data = JSON.parse(localStorageData!);
+		const piece = data.repertoire.find((p: any) => p.name === 'Merged Song');
+
+		expect(piece.nextDate).toBeTruthy();
+		await expect(pieceItem).toContainText('Due:');
+	});
 });

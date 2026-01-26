@@ -1,21 +1,4 @@
-export interface Segment {
-	id: string;
-	start: number;
-	end: number;
-	readiness: number; // 0..3
-	lastPracticed: string | null; // ISO Date
-}
-
-export interface Piece {
-	id: string;
-	name: string;
-	totalMeasures: number;
-	segments: Segment[];
-}
-
-export interface RepertoireData {
-	repertoire: Piece[];
-}
+import { Segment, Piece, RepertoireData } from './types';
 
 export class RepertoireManager {
 	private data: RepertoireData;
@@ -25,7 +8,24 @@ export class RepertoireManager {
 
 	constructor() {
 		this.data = this.loadFromStorage();
+		this.migrateData();
 		this.sessions = this.loadSessionsFromStorage();
+	}
+
+	private migrateData() {
+		let changed = false;
+		this.data.repertoire.forEach(piece => {
+			// Migration 1: Ensure nextDate exists for mastered pieces (1 active segment)
+			if (this.getActiveSegments(piece).length === 1 && !piece.nextDate) {
+				// Set default to Now so it appears in the queue immediately
+				piece.nextDate = new Date().toISOString();
+				changed = true;
+			}
+		});
+
+		if (changed) {
+			this.saveToStorage();
+		}
 	}
 
 	private loadSessionsFromStorage(): { [pieceId: string]: Segment[] } {
@@ -136,20 +136,9 @@ export class RepertoireManager {
 		this.clearSession(id);
 	}
 
-	/**
-	 * returns a shuffled list of segments to practice, sorted by readiness (0 first)
-	 */
-	getPracticeQueue(pieceId: string): Segment[] {
-		const piece = this.getPiece(pieceId);
-		if (!piece) return [];
-
-		// Run merges before generating queue
-		this.processMerges(piece);
-
-		// Group by readiness
-		// Filter redundant segments:
-		// A segment is redundant if it is readiness 3 AND is contained in a larger segment
-		const filteredSegments = piece.segments.filter(seg => {
+	// Helper to get active segments (filtering out redundant ones)
+	private getActiveSegments(piece: Piece): Segment[] {
+		return piece.segments.filter(seg => {
 			if (seg.readiness !== 3) return true; // Keep non-ready segments
 
 			// Check if contained in a larger segment
@@ -163,6 +152,20 @@ export class RepertoireManager {
 
 			return !isContainedInLarger;
 		});
+	}
+
+	/**
+	 * returns a shuffled list of segments to practice, sorted by readiness (0 first)
+	 */
+	getPracticeQueue(pieceId: string): Segment[] {
+		const piece = this.getPiece(pieceId);
+		if (!piece) return [];
+
+		// Run merges before generating queue
+		this.processMerges(piece);
+
+		// Group by readiness
+		const filteredSegments = this.getActiveSegments(piece);
 
 		// Group by readiness
 		const groups: { [key: number]: Segment[] } = { 0: [], 1: [], 2: [], 3: [] };
@@ -199,8 +202,52 @@ export class RepertoireManager {
 		const segment = piece.segments.find(s => s.id === segmentId);
 		if (!segment) return;
 
+		const previousLastPracticed = segment.lastPracticed;
 		segment.readiness = newReadiness;
 		segment.lastPracticed = new Date().toISOString();
+
+		// Spaced Repetition Logic for mastered pieces (1 active segment)
+		if (this.getActiveSegments(piece).length === 1) {
+			const now = new Date();
+			const oneDayMs = 24 * 60 * 60 * 1000;
+			let nextDateObj: Date;
+
+			// Calculate elapsed
+			let elapsedMs = oneDayMs; // Default fallback
+			if (previousLastPracticed) {
+				elapsedMs = now.getTime() - new Date(previousLastPracticed).getTime();
+			}
+			// Should we use Math.max(0, ...) to prevent negative elapsed?
+			if (elapsedMs < 0) elapsedMs = 0;
+
+			const elapsedDays = elapsedMs / oneDayMs;
+
+			if (newReadiness === 0) {
+				// today's date
+				nextDateObj = now;
+			} else if (newReadiness === 1) {
+				// today + 1 day
+				nextDateObj = new Date(now.getTime() + oneDayMs);
+			} else if (newReadiness === 2) {
+				// today + max(1 day, elapsed)
+				const addDays = Math.max(1, elapsedDays);
+				nextDateObj = new Date(now.getTime() + (addDays * oneDayMs));
+			} else if (newReadiness === 3) {
+				// today + max(2 days, 2 * elapsed)
+				const addDays = Math.max(2, 2 * elapsedDays);
+				nextDateObj = new Date(now.getTime() + (addDays * oneDayMs));
+			} else {
+				nextDateObj = now;
+			}
+
+			// Enforce 1 year cap
+			const oneYearFromNow = new Date(now.getTime() + (365 * oneDayMs));
+			if (nextDateObj > oneYearFromNow) {
+				nextDateObj = oneYearFromNow;
+			}
+
+			piece.nextDate = nextDateObj.toISOString();
+		}
 
 		this.saveToStorage();
 	}
@@ -332,5 +379,10 @@ export class RepertoireManager {
 		}
 
 		return Math.round((currentScore / maxScore) * 100);
+	}
+	isMastered(pieceId: string): boolean {
+		const piece = this.getPiece(pieceId);
+		if (!piece) return false;
+		return this.getActiveSegments(piece).length === 1;
 	}
 }
