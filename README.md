@@ -10,9 +10,16 @@ Elephant Soup is a minimalist web app designed to help musicians master complex 
 ## Philosophy
 Credible research [^1] shows that the single most powerful learning tool is *frequent low-stakes testing with immediate feedback*. That's what Elephant Soup is designed to do.
 
-It's intentionally the simplest possible interface: The app will cue you to practice a segment.  Hit Record, then play or sing the segment. Then hit Stop, hit Play and *listen*. Ask yourself "What, specifically, can I do to make that better?" Then take another shot at it.
+By design, it incorporates other key insights[^2] from the research:
+
+- Interleaved Practice
+- Chunking
+- Micro-breaks
+- Spaced Repetition
+
 
 [^1]: *Brown, Peter C. Make It Stick : the Science of Successful Learning. Cambridge, Massachusetts :The Belknap Press of Harvard University Press, 2014.*
+[^2]: *Gebrian, Molly, Learn faster, Perform better: a musician's guide to the neuroscience of practicing. New York, NY: Oxford University Press, 2024.*
 
 ## How It Works
 
@@ -20,8 +27,8 @@ It's intentionally the simplest possible interface: The app will cue you to prac
 Elephant Soup uses your assessments of difficulty to ensure that you spend the most time on the most difficult sections, preventing mindless run-throughs of parts you already know.
 
 ### Sequence Learning
-Unlike flashcard apps (spaced repetition) that focus on independent items, Elephant Soup tackles **sequences**—be it a piece of music, a poem, or lines from a play. 
-- It starts by presenting individual segments.
+Unlike flashcard apps (e.g. Anki, Mnemosyne, SuperMemo) that focus on independent items, Elephant Soup tackles **sequences**—be it a piece of music, a poem, or lines from a play. 
+- It starts by presenting individual segments -- typically a single measure or phrase ­-- for you to perform. A built-in recorder helps you capture your performance and rate it based on your readiness.
 - As you rate adjacent segments as "Ready", the app gradually groups them together.
 - Over time, you build larger and larger chunks of the piece until the whole sequence is mastered.
 
@@ -33,10 +40,10 @@ Instead of random access, the piece is scheduled for review based on your rating
 - **Rate 2**: Review in `max(1 day, elapsed_time)`
 - **Rate 3**: Review in `max(2 days, 2 * elapsed_time)`
 
-The goal is to expand the review interval up to a maximum of 1 year.
+Your rating and the elapsed time since you last practiced determine the review interval. The maximum interval is 1 year.
 
 ### The Workflow
-1.  **Add a Piece**: Name your piece and define the number of measures (or segments).
+1.  **Add a Piece**: Name your piece and define the number of measures (or segments). Note that you define what constitutes a "measure" for your piece. Just be sure to number the segments sequentially in your score or chart so you can easily identify them.
 2.  **Start Practice**: The app creates a shuffled queue of segments for the current session.
 3.  **The Loop**:
     - **Record** your attempt at the presented segment.
@@ -50,10 +57,10 @@ The goal is to expand the review interval up to a maximum of 1 year.
 ## Getting Started
 The latest stable version is available at [michael-f-ellis.github.io/elephantsoup](https://michael-f-ellis.github.io/elephantsoup/).
 
-You'll need a modern web browser (Chrome, Firefox, Edge, Safari) and a microphone.
+You'll need a modern web browser (Chrome, Firefox, Edge, Safari) and a computer or mobile device with a microphone to use Elephant Soup.
 
 ## Installation (Local Development)
-If you want to run the code locally or contribute:
+If you want to run Elephant Soup locally or contribute:
 
 1.  **Clone the repository:**
     ```bash
@@ -64,6 +71,14 @@ If you want to run the code locally or contribute:
     ```bash
     npm install
     ```
+    *Note: This installs Vite, TypeScript, and Playwright integration. If you plan to run automated tests, you also need to install the browser binaries:*
+    ```bash
+    npx playwright install
+    ```
+
+### Deployment Dependencies
+If you plan to use the `deploy.py` script to deploy to GitHub Pages, you will need **Python 3** installed on your system.
+
 3.  **Run the dev server:**
     ```bash
     npm run dev
