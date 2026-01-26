@@ -5,17 +5,46 @@ test.describe('Elephant Soup', () => {
 		// Mock Media APIs to bypass microphone permission and hardware requirement
 		await page.addInitScript(() => {
 			// 1. Mock getUserMedia
-			if (!navigator.mediaDevices) {
-				(navigator as any).mediaDevices = {};
-			}
-			navigator.mediaDevices.getUserMedia = async () => {
+			const mockGetUserMedia = async () => {
 				return {
 					getTracks: () => [{ stop: () => { } }]
 				} as any;
 			};
 
+			const mockMediaDevices = {
+				getUserMedia: mockGetUserMedia,
+				enumerateDevices: async () => [],
+				addEventListener: () => { },
+				removeEventListener: () => { },
+				dispatchEvent: () => true,
+			};
+
+			try {
+				// Try to define on navigator directly
+				Object.defineProperty(navigator, 'mediaDevices', {
+					value: mockMediaDevices,
+					writable: true,
+					configurable: true
+				});
+			} catch (e) {
+				// Fallback to patching the instance if it exists
+				if (navigator.mediaDevices) {
+					try {
+						Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+							value: mockGetUserMedia,
+							writable: true,
+							configurable: true
+						});
+					} catch (e2) {
+						// ignore
+					}
+				} else {
+					(navigator as any).mediaDevices = mockMediaDevices;
+				}
+			}
+
 			// 2. Mock MediaRecorder
-			(window as any).MediaRecorder = class {
+			const MockMediaRecorder = class {
 				state = 'inactive';
 				stream: any;
 				ondataavailable: (e: any) => void = () => { };
@@ -45,6 +74,16 @@ test.describe('Elephant Soup', () => {
 
 				static isTypeSupported() { return true; }
 			};
+
+			try {
+				(window as any).MediaRecorder = MockMediaRecorder;
+			} catch (e) {
+				Object.defineProperty(window, 'MediaRecorder', {
+					value: MockMediaRecorder,
+					writable: true,
+					configurable: true
+				});
+			}
 
 			// 3. Mock Audio Playback
 			const originalPlay = HTMLAudioElement.prototype.play;
@@ -182,6 +221,7 @@ test.describe('Elephant Soup', () => {
 		// Record -> Play -> Rate flow
 		const recordBtn = page.locator('#recordButton');
 		await recordBtn.click();
+		await expect(recordBtn).toHaveClass(/recording/);
 		await page.waitForTimeout(500); // short recording
 		await recordBtn.click({ force: true });
 
@@ -231,6 +271,7 @@ test.describe('Elephant Soup', () => {
 
 			// Rate it
 			await recordBtn.click();
+			await expect(recordBtn).toHaveClass(/recording/);
 			await page.waitForTimeout(100);
 			await recordBtn.click({ force: true });
 			await page.locator('#playButton').click();
@@ -358,6 +399,7 @@ test.describe('Elephant Soup', () => {
 		// 3. Record & Rate 1 (Tomorrow)
 		const recordBtn = page.locator('#recordButton');
 		await recordBtn.click(); // Start
+		await expect(recordBtn).toHaveClass(/recording/);
 		await page.waitForTimeout(100);
 		await recordBtn.click({ force: true }); // Stop
 
@@ -418,6 +460,7 @@ test.describe('Elephant Soup', () => {
 		for (let i = 0; i < 2; i++) {
 			const recordBtn = page.locator('#recordButton');
 			await recordBtn.click();
+			await expect(recordBtn).toHaveClass(/recording/);
 			await page.waitForTimeout(100);
 			await recordBtn.click({ force: true });
 			await page.locator('#playButton').click();
@@ -446,6 +489,7 @@ test.describe('Elephant Soup', () => {
 		// 4. Rate the merged segment [1-2] as 2 (Copable) -> Should trigger Spaced Repetition Logic
 		const recordBtn = page.locator('#recordButton');
 		await recordBtn.click();
+		await expect(recordBtn).toHaveClass(/recording/);
 		await page.waitForTimeout(100);
 		await recordBtn.click({ force: true });
 		await page.locator('#playButton').click();
