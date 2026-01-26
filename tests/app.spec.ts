@@ -2,8 +2,62 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Elephant Soup', () => {
 	test.beforeEach(async ({ context, page }) => {
-		// Grant microphone permission
-		await context.grantPermissions(['microphone']);
+		// Mock Media APIs to bypass microphone permission and hardware requirement
+		await page.addInitScript(() => {
+			// 1. Mock getUserMedia
+			if (!navigator.mediaDevices) {
+				(navigator as any).mediaDevices = {};
+			}
+			navigator.mediaDevices.getUserMedia = async () => {
+				return {
+					getTracks: () => [{ stop: () => { } }]
+				} as any;
+			};
+
+			// 2. Mock MediaRecorder
+			(window as any).MediaRecorder = class {
+				state = 'inactive';
+				stream: any;
+				ondataavailable: (e: any) => void = () => { };
+				onstop: () => void = () => { };
+				mimeType = 'audio/webm';
+
+				constructor(stream: any) {
+					this.stream = stream;
+				}
+
+				start() {
+					this.state = 'recording';
+				}
+
+				stop() {
+					this.state = 'inactive';
+					// Simulate data available
+					const fakeBlob = new Blob(['fake audio data'], { type: this.mimeType });
+					if (this.ondataavailable) {
+						this.ondataavailable({ data: fakeBlob } as any);
+					}
+					// Trigger stop
+					if (this.onstop) {
+						this.onstop();
+					}
+				}
+
+				static isTypeSupported() { return true; }
+			};
+
+			// 3. Mock Audio Playback
+			const originalPlay = HTMLAudioElement.prototype.play;
+			HTMLAudioElement.prototype.play = async function () {
+				// Immediately succeed
+				setTimeout(() => {
+					// Trigger ended event to signal playback finished
+					this.dispatchEvent(new Event('ended'));
+				}, 50); // Short delay to simulate playback
+				return Promise.resolve();
+			};
+		});
+
 		await page.goto('/');
 	});
 
