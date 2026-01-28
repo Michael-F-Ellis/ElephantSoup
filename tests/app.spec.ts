@@ -200,6 +200,41 @@ test.describe('Elephant Soup', () => {
 
 	});
 
+	test('Suspend button shows remaining count', async ({ page }) => {
+		// 1. Setup: Add piece with 5 measures
+		await page.locator('#add-piece-btn').click();
+		await page.locator('#new-piece-name').fill('Count Song');
+		await page.locator('#new-piece-measures').fill('5');
+		await page.locator('#save-piece-btn').click();
+
+		const pieceItem = page.locator('.piece-item', { hasText: 'Count Song' });
+
+		// 2. Start Practice
+		await pieceItem.click();
+		await expect(page.locator('#practice-view')).toBeVisible();
+
+		// Initial state: 5 measures total. Current is 1 (active). 4 in queue. Total remaining to save = 1+4 = 5.
+		// Wait for button update
+		const suspendBtn = page.locator('#back-to-repertoire');
+		await expect(suspendBtn).toContainText('Suspend (5 remaining)');
+
+		// 3. Complete one measure
+		const recordBtn = page.locator('#recordButton');
+		await recordBtn.click();
+		await page.waitForTimeout(100);
+		await recordBtn.click({ force: true });
+		await page.locator('#playButton').click();
+
+		const rateControls = page.locator('#readiness-controls');
+		await expect(rateControls).toBeVisible({ timeout: 5000 });
+
+		// Rate it
+		await rateControls.locator('.rate-btn[data-level="2"]').click();
+
+		// Now: 4 measures left. Current is new one. 3 in queue. Total = 4.
+		await expect(suspendBtn).toContainText('Suspend (4 remaining)');
+	});
+
 	test('can suspend and resume a session', async ({ page }) => {
 		// 1. Setup: Add piece
 		await page.locator('#add-piece-btn').click();

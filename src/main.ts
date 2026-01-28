@@ -390,6 +390,19 @@ class App {
 		}
 	}
 
+	updateSuspendButton() {
+		const btn = document.getElementById('back-to-repertoire');
+		if (btn) {
+			// Count remaining items in queue + current item
+			const count = this.practiceQueue.length + (this.currentSegment ? 1 : 0);
+			// Update text node only, preserving icon if possible? 
+			// The original HTML is: <button id="back-to-repertoire" class="back-button"><i class="fas fa-arrow-left"></i> Suspend</button>
+			// So we should reconstruct the HTML or just update text. 
+			// Let's reconstruct to be safe and simple.
+			btn.innerHTML = `<i class="fas fa-arrow-left"></i> Suspend (${count} remaining)`;
+		}
+	}
+
 	stopSession() {
 		this.recorder.stopPlaying();
 		this.recorder.stopRecording();
@@ -397,6 +410,11 @@ class App {
 		this.practiceView.style.display = 'none';
 		this.currentPieceId = null;
 		this.currentSegment = null;
+
+		// Reset Suspend button text
+		const btn = document.getElementById('back-to-repertoire');
+		if (btn) btn.innerHTML = '<i class="fas fa-arrow-left"></i> Suspend';
+
 		// Refresh list to show resumable status
 		this.renderRepertoire();
 	}
@@ -410,6 +428,8 @@ class App {
 		}
 
 		this.currentSegment = this.practiceQueue.shift() || null;
+		this.updateSuspendButton(); // Update count display
+
 		if (this.currentSegment) {
 			const display = document.getElementById('current-segment-display')!;
 			if (this.currentSegment.start === this.currentSegment.end) {
