@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Progress Bar Mockups</title>
+	<style>
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+			background: #1e1e1e;
+			color: #eee;
+			padding: 20px;
+		}
+
+		.container {
+			max-width: 600px;
+			margin: 0 auto;
+		}
+
+		.piece-item {
+			background-color: #2c2c2e;
+			border-radius: 8px;
+			padding: 15px;
+			margin-bottom: 20px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+		}
+
+		.piece-info {
+			margin-bottom: 10px;
+		}
+
+		.piece-name {
+			font-weight: bold;
+			font-size: 1.1em;
+		}
+
+		.piece-meta {
+			font-size: 0.9em;
+			color: #aaa;
+		}
+
+		/* The Progress Bar SVG Styles */
+		.progress-graph {
+			width: 100%;
+			height: 8px;
+			/* Enough to be tapped/seen easily */
+			background-color: #1a1a1a;
+			/* Background for level 0 */
+			border-radius: 4px;
+			overflow: hidden;
+			display: block;
+		}
+
+		/* Colors based on requirements */
+		.level-0 {
+			fill: transparent;
+		}
+
+		.level-1 {
+			fill: #00008b;
+		}
+
+		/* Dark Blue */
+		.level-2 {
+			fill: #008b8b;
+		}
+
+		/* Blue-green (DarkCyan) */
+		.level-3 {
+			fill: #00ff00;
+		}
+
+		/* Bright Green */
+
+		/* To indicate a merged segment of readiness 3, we can stroke it */
+		.merged-segment {
+			stroke: #ffffff;
+			/* White or light gray to stand out against bright green */
+			stroke-width: 1px;
+			stroke-dasharray: 2, 2;
+			/* Optional: dashed border */
+		}
+	</style>
+</head>
+
+<body>
+
+	<div class="container">
+		<h2>Mockup 1: Standard Progression (10 measures)</h2>
+		<div class="piece-item">
+			<div class="piece-info">
+				<span class="piece-name">Example Sonata</span><br>
+				<span class="piece-meta">10 measures • 40% Complete</span>
+			</div>
+			<!-- 10 measures total, segments of width 10% -->
+			<svg class="progress-graph" viewBox="0 0 100 8" preserveAspectRatio="none">
+				<!-- Level 3 (Ready) -->
+				<rect x="0" y="0" width="10" height="8" class="level-3"></rect>
+				<rect x="10" y="0" width="10" height="8" class="level-3"></rect>
+				<rect x="20" y="0" width="10" height="8" class="level-3"></rect>
+				<!-- Level 2 (Okay) -->
+				<rect x="30" y="0" width="10" height="8" class="level-2"></rect>
+				<rect x="40" y="0" width="10" height="8" class="level-2"></rect>
+				<!-- Level 1 (Hard) -->
+				<rect x="50" y="0" width="10" height="8" class="level-1"></rect>
+				<!-- Level 0 (New/Transparent) -->
+				<!-- We just leave it transparent or explicitly draw it -->
+				<rect x="60" y="0" width="10" height="8" class="level-0"></rect>
+				<rect x="70" y="0" width="10" height="8" class="level-0"></rect>
+				<rect x="80" y="0" width="10" height="8" class="level-0"></rect>
+				<rect x="90" y="0" width="10" height="8" class="level-0"></rect>
+
+				<!-- Grid lines to distinguish individual measures (optional vs merged) -->
+				<path d="M10,0 v8 M20,0 v8 M30,0 v8 M40,0 v8 M50,0 v8 M60,0 v8 M70,0 v8 M80,0 v8 M90,0 v8"
+					stroke="#1e1e1e" stroke-width="0.5"></path>
+			</svg>
+		</div>
+
+		<h2>Mockup 2: With Merged Segments (10 measures)</h2>
+		<div class="piece-item">
+			<div class="piece-info">
+				<span class="piece-name">Merged Example</span><br>
+				<span class="piece-meta">10 measures • 60% Complete</span>
+			</div>
+			<svg class="progress-graph" viewBox="0 0 100 8" preserveAspectRatio="none">
+				<!-- A merged segment from measure 1 to 4 (width = 40) -->
+				<!-- 1px outline is requested to distinguish from 4 separate measures -->
+				<!-- Here the path gives a stroke border on the inside representing the merge -->
+				<rect x="0" y="0" width="40" height="8" class="level-3"></rect>
+				<rect x="0.5" y="0.5" width="39" height="7" fill="none" class="merged-segment" stroke="#ffffff"></rect>
+
+				<!-- Level 2 (Okay) -->
+				<rect x="40" y="0" width="10" height="8" class="level-2"></rect>
+				<rect x="50" y="0" width="10" height="8" class="level-2"></rect>
+
+				<!-- Level 0 (New) -->
+				<rect x="60" y="0" width="40" height="8" class="level-0"></rect>
+
+				<!-- Grid lines for non-merged -->
+				<path d="M40,0 v8 M50,0 v8 M60,0 v8 M70,0 v8 M80,0 v8 M90,0 v8" stroke="#1e1e1e" stroke-width="0.5">
+				</path>
+			</svg>
+		</div>
+
+		<h2>Mockup 3: Large Piece (50 measures)</h2>
+		<div class="piece-item">
+			<div class="piece-info">
+				<span class="piece-name">Concerto Movement</span><br>
+				<span class="piece-meta">50 measures • 20% Complete</span>
+			</div>
+			<svg class="progress-graph" viewBox="0 0 100 8" preserveAspectRatio="none">
+				<!-- 50 measures = each is 2% wide -->
+				<!-- A long merged segment of 10 measures (idx 0 to 9) -->
+				<rect x="0" y="0" width="20" height="8" class="level-3"></rect>
+				<rect x="0.2" y="0.2" width="19.6" height="7.6" fill="none" class="merged-segment" stroke="#ffffff"
+					stroke-width="0.5"></rect>
+
+				<!-- Some scattered practice -->
+				<rect x="20" y="0" width="2" height="8" class="level-2"></rect>
+				<rect x="22" y="0" width="2" height="8" class="level-1"></rect>
+				<rect x="30" y="0" width="4" height="8" class="level-2"></rect>
+
+				<rect x="40" y="0" width="60" height="8" class="level-0"></rect>
+
+				<!-- We omit interior vertical lines here to prevent visual noise at high density, 
+                 or we just draw them very thin -->
+				<!-- Just drawing a few to show density: -->
+				<path d="M22,0 v8 M24,0 v8 M32,0 v8 M34,0 v8 M36,0 v8" stroke="#1e1e1e" stroke-width="0.2"></path>
+			</svg>
+		</div>
+
+	</div>
+
+</body>
+
+</html>

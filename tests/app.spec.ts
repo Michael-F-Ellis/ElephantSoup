@@ -218,6 +218,30 @@ test.describe('Elephant Soup', () => {
 		expect(text).toMatch(/Measure 6[0-3]/);
 	});
 
+	test('renders progress graph correctly based on measure count', async ({ page }) => {
+		// Add a piece with 10 measures (should have graph)
+		await page.locator('#add-piece-btn').click();
+		await page.locator('#new-piece-name').fill('Graph Song');
+		await page.locator('#new-piece-measures').fill('10');
+		await page.locator('#save-piece-btn').click();
+
+		const pieceItem1 = page.locator('.piece-item', { hasText: 'Graph Song' });
+		await expect(pieceItem1).toBeVisible();
+		// Graph should be visible inside it
+		await expect(pieceItem1.locator('svg.progress-graph')).toBeVisible();
+
+		// Add a piece with 201 measures (should NOT have graph, suppressed)
+		await page.locator('#add-piece-btn').click();
+		await page.locator('#new-piece-name').fill('Too Big Song');
+		await page.locator('#new-piece-measures').fill('201');
+		await page.locator('#save-piece-btn').click();
+
+		const pieceItem2 = page.locator('.piece-item', { hasText: 'Too Big Song' });
+		await expect(pieceItem2).toBeVisible();
+		// Graph should not be attached or visible
+		await expect(pieceItem2.locator('svg.progress-graph')).not.toBeVisible();
+	});
+
 	test('Suspend button shows remaining count', async ({ page }) => {
 		// 1. Setup: Add piece with 5 measures
 		await page.locator('#add-piece-btn').click();

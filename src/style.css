@@ -110,6 +110,8 @@ h2 {
     cursor: pointer;
     color: white;
     text-align: left;
+    flex-wrap: wrap;
+    /* Added for the progress graph to drop below */
 }
 
 .piece-item:hover {
@@ -337,4 +339,45 @@ h2 {
     padding: 15px;
     font-size: 1rem;
     border-radius: 10px;
+}
+
+/* Progress Graph Styles */
+.progress-graph {
+    width: 100%;
+    height: 6px;
+    /* A bit thinner based on mockup visual preference */
+    background-color: #1a1a1a;
+    /* Background for level 0 */
+    border-radius: 4px;
+    overflow: hidden;
+    display: block;
+    margin-top: 5px;
+    pointer-events: none;
+}
+
+/* Colors based on requirements */
+.level-0 {
+    fill: transparent;
+}
+
+.level-1 {
+    fill: #1e3a8a;
+}
+
+/* Brighter Dark Blue */
+.level-2 {
+    fill: #008b8b;
+}
+
+/* Blue-green */
+.level-3 {
+    fill: #00ff00;
+}
+
+/* Bright Green */
+
+/* Merged segment border */
+.merged-segment {
+    stroke: #ffffff;
+    stroke-width: 1px;
 }

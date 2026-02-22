@@ -2,6 +2,7 @@ import './style.css'
 import { RepertoireManager } from './repertoire';
 import { Segment } from './types';
 import { MusicRecorder } from './recorder';
+import { renderProgressGraph } from './statusgraph';
 
 // --- App Logic ---
 
@@ -307,6 +308,7 @@ class App {
                     ${score}%
                 </div>
                 <button class="delete-btn" data-id="${piece.id}"><i class="fas fa-trash"></i></button>
+                ${renderProgressGraph(piece)}
             `;
 
 			// Delete handler
