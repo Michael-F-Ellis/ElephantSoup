@@ -25,11 +25,10 @@ export function renderProgressGraph(piece: Piece): string {
 	const measureReadiness = new Array(T).fill(0);
 	const isMerged = new Array(T).fill(false);
 
-	// Populate measureReadiness based on segments
-	// Priority:
-	// 1. Ready blocks (3)
-	// 2. Exact match (0, 1, 2)
-	segments.forEach(seg => {
+	// Sort segments by size ascending so larger merged segments overwrite smaller ones
+	const sortedSegments = [...segments].sort((a, b) => (a.end - a.start) - (b.end - b.start));
+
+	sortedSegments.forEach(seg => {
 		// Only process segments within our expected range
 		if (seg.start < startM || seg.end >= startM + T) return;
 
@@ -40,15 +39,12 @@ export function renderProgressGraph(piece: Piece): string {
 			const idx = m - startM;
 			if (idx >= 0 && idx < T) {
 				// If the measure is part of a merged block, mark it
-				// We assume blocks are level 3, but apply generally
 				if (isBlock) {
 					isMerged[idx] = true;
 				}
 
-				// Keep highest readiness seen for a measure
-				if (readiness > measureReadiness[idx]) {
-					measureReadiness[idx] = readiness;
-				}
+				// Unconditionally overwrite because sortedSegments puts larger encompassing segments later
+				measureReadiness[idx] = readiness;
 			}
 		}
 	});
