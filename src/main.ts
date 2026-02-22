@@ -105,15 +105,18 @@ class App {
 			(document.getElementById('add-piece-btn') as HTMLElement).style.display = 'block';
 			(document.getElementById('new-piece-name') as HTMLInputElement).value = '';
 			(document.getElementById('new-piece-measures') as HTMLInputElement).value = '';
+			(document.getElementById('new-piece-start-measure') as HTMLInputElement).value = '';
 		});
 
 		// Save Piece
 		document.getElementById('save-piece-btn')?.addEventListener('click', () => {
 			const nameFn = document.getElementById('new-piece-name') as HTMLInputElement;
 			const measuresFn = document.getElementById('new-piece-measures') as HTMLInputElement;
+			const startMeasureFn = document.getElementById('new-piece-start-measure') as HTMLInputElement;
 
 			if (nameFn.value && measuresFn.value) {
-				this.manager.addPiece(nameFn.value, parseInt(measuresFn.value));
+				const startVal = startMeasureFn.value ? parseInt(startMeasureFn.value) : 1;
+				this.manager.addPiece(nameFn.value, parseInt(measuresFn.value), startVal);
 				this.renderRepertoire();
 
 				// Reset UI
@@ -121,6 +124,7 @@ class App {
 				(document.getElementById('add-piece-btn') as HTMLElement).style.display = 'block';
 				nameFn.value = '';
 				measuresFn.value = '';
+				startMeasureFn.value = '';
 			}
 		});
 

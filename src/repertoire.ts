@@ -106,7 +106,7 @@ export class RepertoireManager {
 		return this.data.repertoire.find(p => p.id === id);
 	}
 
-	addPiece(name: string, totalMeasures: number): Piece {
+	addPiece(name: string, totalMeasures: number, startMeasure: number = 1): Piece {
 		const newPiece: Piece = {
 			id: crypto.randomUUID(),
 			name,
@@ -115,11 +115,12 @@ export class RepertoireManager {
 		};
 
 		// Generate initial 1-measure segments
-		for (let i = 1; i <= totalMeasures; i++) {
+		for (let i = 0; i < totalMeasures; i++) {
+			const measureNum = startMeasure + i;
 			newPiece.segments.push({
 				id: crypto.randomUUID(),
-				start: i,
-				end: i,
+				start: measureNum,
+				end: measureNum,
 				readiness: 0,
 				lastPracticed: null
 			});
@@ -352,10 +353,12 @@ export class RepertoireManager {
 		if (!piece || piece.totalMeasures === 0) return 0;
 
 		const N = piece.totalMeasures;
+		// Determine the actual start measure to calculate readiness correctly
+		const startM = piece.segments.length > 0 ? Math.min(...piece.segments.map(s => s.start)) : 1;
 		const maxScore = N * N;
 		let currentScore = 0;
 
-		for (let m = 1; m <= N; m++) {
+		for (let m = startM; m < startM + N; m++) {
 			// Find longest segment containing m that is MASTERED (readiness === 3)
 			const readySegments = piece.segments.filter(s =>
 				s.start <= m && s.end >= m && s.readiness === 3

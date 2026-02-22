@@ -200,6 +200,24 @@ test.describe('Elephant Soup', () => {
 
 	});
 
+	test('can add a piece with a custom starting measure', async ({ page }) => {
+		await page.locator('#add-piece-btn').click();
+		await page.locator('#new-piece-name').fill('Custom Start Song');
+		await page.locator('#new-piece-measures').fill('4');
+		await page.locator('#new-piece-start-measure').fill('60');
+		await page.locator('#save-piece-btn').click();
+
+		const pieceItem = page.locator('.piece-item', { hasText: 'Custom Start Song' });
+		await expect(pieceItem).toBeVisible();
+		await pieceItem.click();
+
+		// Verify random measure prompt (60-63)
+		const segmentDisplay = page.locator('#current-segment-display');
+		await expect(segmentDisplay).toBeVisible();
+		const text = await segmentDisplay.textContent();
+		expect(text).toMatch(/Measure 6[0-3]/);
+	});
+
 	test('Suspend button shows remaining count', async ({ page }) => {
 		// 1. Setup: Add piece with 5 measures
 		await page.locator('#add-piece-btn').click();
