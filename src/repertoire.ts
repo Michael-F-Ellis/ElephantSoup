@@ -106,12 +106,13 @@ export class RepertoireManager {
 		return this.data.repertoire.find(p => p.id === id);
 	}
 
-	addPiece(name: string, totalMeasures: number, startMeasure: number = 1): Piece {
+	addPiece(name: string, totalMeasures: number, startMeasure: number = 1, youtubeId?: string): Piece {
 		const newPiece: Piece = {
 			id: crypto.randomUUID(),
 			name,
 			totalMeasures,
-			segments: []
+			segments: [],
+			youtubeId
 		};
 
 		// Generate initial 1-measure segments
@@ -129,6 +130,40 @@ export class RepertoireManager {
 		this.data.repertoire.push(newPiece);
 		this.saveToStorage();
 		return newPiece;
+	}
+
+	updatePieceYoutube(pieceId: string, youtubeId: string, measureOffsets: Record<number, number>) {
+		const piece = this.getPiece(pieceId);
+		if (!piece) return;
+
+		piece.youtubeId = youtubeId;
+		piece.measureOffsets = measureOffsets;
+
+		// Check if we need to increase totalMeasures
+		const measureNums = Object.keys(measureOffsets).map(Number);
+		if (measureNums.length > 0) {
+			const maxMeasureMapped = Math.max(...measureNums);
+			const startMeasure = (piece.segments.length > 0) ? Math.min(...piece.segments.map(s => s.start)) : 1;
+			const mappedCount = maxMeasureMapped - startMeasure + 1;
+
+			if (mappedCount > piece.totalMeasures) {
+				const diff = mappedCount - piece.totalMeasures;
+				// Add extra segments for the new measures
+				for (let i = 0; i < diff; i++) {
+					const m = piece.totalMeasures + startMeasure + i;
+					piece.segments.push({
+						id: crypto.randomUUID(),
+						start: m,
+						end: m,
+						readiness: 0,
+						lastPracticed: null
+					});
+				}
+				piece.totalMeasures = mappedCount;
+			}
+		}
+
+		this.saveToStorage();
 	}
 
 	deletePiece(id: string) {

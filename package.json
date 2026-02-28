@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsgo && vite build",
     "preview": "vite preview",
-    "check": "tsc --noEmit"
+    "check": "tsgo --noEmit"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
