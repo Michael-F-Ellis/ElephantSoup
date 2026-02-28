@@ -518,8 +518,7 @@ class App {
 				this.practicePlayer.pauseVideo();
 				clearInterval(checkEnd);
 				this.playSampleBtn.disabled = false;
-				this.status.textContent = 'Rate this segment:';
-				this.readinessControls.style.display = 'block';
+				this.status.textContent = 'Ready to record';
 			}
 		}, 100);
 	}
