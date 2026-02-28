@@ -54,6 +54,7 @@ test.describe('YouTube Mapping UI', () => {
 						setTimeout(() => config.events.onReady(), 100);
 					}
 					getCurrentTime() { return 10.5; }
+					getPlayerState() { return 1; } // 1 = Playing
 					playVideo() { }
 					pauseVideo() { }
 					stopVideo() { }
@@ -125,5 +126,42 @@ test.describe('YouTube Mapping UI', () => {
 
 		// Verify Play Sample button is visible
 		await expect(page.locator('#play-sample-btn')).toBeVisible();
+	});
+
+	test('should select and highlight dot on click', async ({ page }) => {
+		await page.evaluate(() => {
+			localStorage.setItem('elephant_soup_repertoire', JSON.stringify({
+				repertoire: [{
+					id: 'test-id',
+					name: 'Selection Test',
+					totalMeasures: 8,
+					segments: [],
+					youtubeId: 'dQw4w9WgXcQ',
+					measureOffsets: { 1: 10, 2: 15 }
+				}],
+				lastSync: new Date().toISOString()
+			}));
+		});
+		await page.reload();
+
+		// Mock YT for seek/selection
+		await page.evaluate(() => {
+			(window as any).YT = {
+				Player: class {
+					constructor(id: string, config: any) {
+						setTimeout(() => config.events.onReady(), 100);
+					}
+					seekTo() { }
+					destroy() { }
+				}
+			};
+		});
+
+		await page.locator('.cal-btn').click();
+
+		const secondDot = page.locator('.dot').nth(1);
+		await secondDot.click();
+
+		await expect(secondDot).toHaveClass(/selected/);
 	});
 });

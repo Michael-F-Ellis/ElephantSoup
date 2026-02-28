@@ -19,7 +19,7 @@ export class CalibrationManager {
 	private nudgeVal: HTMLElement;
 	private nudgeMeasureNum: HTMLElement;
 
-	private currentNudgeIndex: number | null = null;
+	private selectedIndex: number | null = null;
 	private startMeasure: number = 1;
 
 	constructor(piece: Piece, onSave: (offsets: Record<number, number>) => void, onExit: () => void) {
@@ -119,20 +119,21 @@ export class CalibrationManager {
 		const poll = () => {
 			if (this.container.style.display !== 'none' && this.player && this.player.getCurrentTime) {
 				const time = this.player.getCurrentTime();
-				this.checkFlash(time);
+				this.updatePlayhead(time);
 			}
 			requestAnimationFrame(poll);
 		};
 		poll();
 	}
 
-	private checkFlash(time: number) {
+	private updatePlayhead(time: number) {
 		this.offsets.forEach((offset, index) => {
-			if (Math.abs(time - offset) < 0.1) {
-				const dot = document.querySelector(`.dot[data-index="${index}"]`);
-				if (dot && !dot.classList.contains('active')) {
-					dot.classList.add('active');
-					setTimeout(() => dot.classList.remove('active'), 300);
+			const dot = document.querySelector(`.dot[data-index="${index}"]`);
+			if (dot) {
+				if (Math.abs(time - offset) < 0.2) {
+					dot.classList.add('now-playing');
+				} else {
+					dot.classList.remove('now-playing');
 				}
 			}
 		});
@@ -159,12 +160,17 @@ export class CalibrationManager {
 		}
 	}
 
-	private handleTap = () => {
+	private handleTap = (e: MouseEvent) => {
+		// Only record if we didn't click on an existing dot
+		if ((e.target as HTMLElement).classList.contains('dot')) return;
 		this.recordTap();
 	}
 
 	private recordTap() {
 		if (!this.player) return;
+		// Only record if playing (State 1 = Playing)
+		if (this.player.getPlayerState() !== 1) return;
+
 		const time = this.player.getCurrentTime();
 		this.offsets.push(time);
 		this.offsets.sort((a, b) => a - b);
@@ -201,6 +207,7 @@ export class CalibrationManager {
 			for (let j = i; j < Math.min(i + itemsPerRow, this.offsets.length); j++) {
 				const dot = document.createElement('div');
 				dot.className = 'dot captured';
+				if (this.selectedIndex === j) dot.classList.add('selected');
 				dot.setAttribute('data-index', j.toString());
 
 				// Position proportionally
@@ -212,6 +219,13 @@ export class CalibrationManager {
 					dot.style.position = 'absolute';
 					dot.style.left = `${percent}%`;
 				}
+
+				dot.onclick = (e) => {
+					e.stopPropagation();
+					this.selectedIndex = j;
+					this.player.seekTo(this.offsets[j], true);
+					this.renderGrid();
+				};
 
 				dot.ondblclick = (e) => {
 					e.stopPropagation();
@@ -247,7 +261,7 @@ export class CalibrationManager {
 
 	private openNudge(index: number) {
 		if (this.entryMode) return;
-		this.currentNudgeIndex = index;
+		this.selectedIndex = index;
 		this.nudgeMeasureNum.textContent = (this.startMeasure + index).toString();
 		this.nudgeSlider.value = "0";
 		this.nudgeVal.textContent = "0.00s";
@@ -263,16 +277,17 @@ export class CalibrationManager {
 	}
 
 	private applyNudge() {
-		if (this.currentNudgeIndex !== null) {
-			this.offsets[this.currentNudgeIndex] += parseFloat(this.nudgeSlider.value);
+		if (this.selectedIndex !== null) {
+			this.offsets[this.selectedIndex] += parseFloat(this.nudgeSlider.value);
 			this.renderGrid();
 		}
 		this.closeNudge();
 	}
 
 	private deleteMeasure() {
-		if (this.currentNudgeIndex !== null && confirm("Delete this measure start?")) {
-			this.offsets.splice(this.currentNudgeIndex, 1);
+		if (this.selectedIndex !== null && confirm("Delete this measure start?")) {
+			this.offsets.splice(this.selectedIndex, 1);
+			this.selectedIndex = null;
 			this.renderGrid();
 		}
 		this.closeNudge();
@@ -280,7 +295,6 @@ export class CalibrationManager {
 
 	private closeNudge() {
 		this.nudgePopup.style.display = 'none';
-		this.currentNudgeIndex = null;
 	}
 
 	private save() {

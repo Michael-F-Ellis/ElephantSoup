@@ -526,25 +526,14 @@ h2 {
     background: #0a84ff;
 }
 
-@keyframes flash {
-    0% {
-        background: #0a84ff;
-        transform: scale(1);
-    }
-
-    50% {
-        background: #fff;
-        transform: scale(1.5);
-    }
-
-    100% {
-        background: #0a84ff;
-        transform: scale(1);
-    }
+.dot.selected {
+    background: #ff9f0a;
+    transform: scale(1.5);
+    box-shadow: 0 0 10px rgba(255, 159, 10, 0.5);
 }
 
-.dot.active {
-    animation: flash 0.3s ease-out;
+.dot.now-playing {
+    border: 2px solid white;
 }
 
 .play-sample-button {
