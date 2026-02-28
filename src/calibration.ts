@@ -95,6 +95,10 @@ export class CalibrationManager {
 			events: {
 				'onReady': () => {
 					this.playBtn.onclick = () => {
+						if (this.selectedIndex !== null && this.offsets[this.selectedIndex] !== undefined) {
+							const startTime = Math.max(0, this.offsets[this.selectedIndex] - 2);
+							this.player.seekTo(startTime, true);
+						}
 						this.player.playVideo();
 						this.playBtn.style.display = 'none';
 						this.pauseBtn.style.display = 'flex';
