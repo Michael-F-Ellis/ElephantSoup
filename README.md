@@ -43,16 +43,40 @@ Instead of random access, the piece is scheduled for review based on your rating
 Your rating and the elapsed time since you last practiced determine the review interval. The maximum interval is 1 year.
 
 ### The Workflow
-1.  **Add a Piece**: Name your piece and define the number of measures (or segments). Note that you define what constitutes a "measure" for your piece. Just be sure to number the segments sequentially in your score or chart so you can easily identify them.
-2.  **Start Practice**: The app creates a shuffled queue of segments for the current session.
-3.  **The Loop**:
+1.  **Add a Piece**: Name your piece and define the number of measures (or segments). You can optionally provide a **YouTube Video ID** to enable synchronized practice.
+2.  **Calibrate (Optional)**: If you provided a YouTube ID, click the cog icon to map measure numbers to specific time offsets in the recording. See [YouTube Integration](#youtube-integration) below.
+3.  **Start Practice**: The app creates a shuffled queue of segments for the current session.
+4.  **The Loop**:
+    - **Play Sample**: Listen to the reference recording for the current segment (if calibrated).
     - **Record** your attempt at the presented segment.
     - **Listen** back critically.
     - **Rate** your readiness:
         - *Not Ready*: Needs more work.
         - *Copable*: Almost there.
         - *Ready*: Secure.
-4.  **Progress**: Your ratings don't change the current session's queue, but they determine how segments are grouped and chosen for the *next* session.
+5.  **Progress**: Your ratings don't change the current session's queue, but they determine how segments are grouped and chosen for the *next* session.
+
+## YouTube Integration
+
+Elephant Soup allows you to sync your practice sessions with a YouTube recording. This provides a high-quality reference and ensures you're practicing at the correct tempo and with the right musical context.
+
+### Calibration
+Once you've added a YouTube Video ID to a piece, click the cog (<i class="fas fa-cog"></i>) icon in the repertoire list to enter **Calibration Mode**.
+
+![Calibration View](public/docs/images/calibration_view.png)
+
+*   **Entry Mode**: Play the video and tap the screen (or hit Space/Enter) on each downbeat. Elephant Soup will record the timestamps for each measure.
+*   **Visual Feedback**: A grid of dots represents your mapped measures. The dots are spaced proportionally to reflect the actual timing in the recording.
+*   **Fine-Tuning**: Click a dot to seek to that point. Double-click any dot to open the **Nudge** menu, where you can micro-adjust the timing or delete a marker.
+
+![Nudge Popup](public/docs/images/nudge_popup.png)
+
+### Practice with Samples
+During your practice session, if a segment has been calibrated, a **Play Sample** button will appear. 
+
+![Practice Sample](public/docs/images/practice_sample.png)
+
+Clicking this will play the corresponding section of the YouTube recording, including a **2-second pre-roll** to give you the necessary musical lead-in.
 
 ## Getting Started
 The latest stable version is available at [michael-f-ellis.github.io/elephantsoup](https://michael-f-ellis.github.io/elephantsoup/).
@@ -78,6 +102,7 @@ If you want to run Elephant Soup locally or contribute:
 
 ### Deployment Dependencies
 If you plan to use the `deploy.py` script to deploy to GitHub Pages, you will need **Python 3** installed on your system.
+You'll also need to copy the `deploy.sample.py` file to `deploy.py` and edit it to include your GitHub Pages URL.
 
 3.  **Run the dev server:**
     ```bash
