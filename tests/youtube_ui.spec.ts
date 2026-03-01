@@ -71,12 +71,19 @@ test.describe('YouTube Mapping UI', () => {
 		await entryBtn.click();
 		await expect(entryBtn).toHaveClass(/active/);
 
-		// Simulate space bar for tap (we need to focus or just emit on window as the app does)
-		await page.keyboard.press('Space');
-		await page.keyboard.press('Space');
+		// Simulate Enter key for tap
+		await page.keyboard.press('Enter');
+		await page.keyboard.press('Enter');
 
 		// Verify dots appeared in grid
 		const dots = page.locator('.dot.captured');
+		await expect(dots).toHaveCount(2);
+
+		// Verify Space toggles playback (requires checking if player method was called)
+		// We can't easily check mock calls here without exposing it, 
+		// but we can check UI state if we had a more complex mock.
+		// For now, just ensure it doesn't add more dots.
+		await page.keyboard.press('Space');
 		await expect(dots).toHaveCount(2);
 	});
 

@@ -94,20 +94,8 @@ export class CalibrationManager {
 			},
 			events: {
 				'onReady': () => {
-					this.playBtn.onclick = () => {
-						if (this.selectedIndex !== null && this.offsets[this.selectedIndex] !== undefined) {
-							const startTime = Math.max(0, this.offsets[this.selectedIndex] - 2);
-							this.player.seekTo(startTime, true);
-						}
-						this.player.playVideo();
-						this.playBtn.style.display = 'none';
-						this.pauseBtn.style.display = 'flex';
-					};
-					this.pauseBtn.onclick = () => {
-						this.player.pauseVideo();
-						this.playBtn.style.display = 'flex';
-						this.pauseBtn.style.display = 'none';
-					};
+					this.playBtn.onclick = () => this.togglePlayback();
+					this.pauseBtn.onclick = () => this.togglePlayback();
 					document.getElementById('cal-stop')!.onclick = () => {
 						this.player.stopVideo();
 						this.playBtn.style.display = 'flex';
@@ -158,7 +146,10 @@ export class CalibrationManager {
 	}
 
 	private handleKey = (e: KeyboardEvent) => {
-		if (e.code === 'Space' || e.code === 'Enter') {
+		if (e.code === 'Space') {
+			e.preventDefault();
+			this.togglePlayback();
+		} else if (e.code === 'Enter') {
 			e.preventDefault();
 			this.recordTap();
 		}
@@ -168,6 +159,24 @@ export class CalibrationManager {
 		// Only record if we didn't click on an existing dot
 		if ((e.target as HTMLElement).classList.contains('dot')) return;
 		this.recordTap();
+	}
+
+	private togglePlayback() {
+		if (!this.player) return;
+		const state = this.player.getPlayerState();
+		if (state === 1) { // Playing
+			this.player.pauseVideo();
+			this.playBtn.style.display = 'flex';
+			this.pauseBtn.style.display = 'none';
+		} else {
+			if (this.selectedIndex !== null && this.offsets[this.selectedIndex] !== undefined) {
+				const startTime = Math.max(0, this.offsets[this.selectedIndex] - 2);
+				this.player.seekTo(startTime, true);
+			}
+			this.player.playVideo();
+			this.playBtn.style.display = 'none';
+			this.pauseBtn.style.display = 'flex';
+		}
 	}
 
 	private recordTap() {
