@@ -5,6 +5,8 @@ import { MusicRecorder } from './recorder';
 import { renderProgressGraph } from './statusgraph';
 import { CalibrationManager } from './calibration';
 
+import { extractYouTubeId } from './utils';
+
 // --- App Logic ---
 
 class App {
@@ -122,7 +124,19 @@ class App {
 
 			if (nameFn.value && measuresFn.value) {
 				const startVal = startMeasureFn.value ? parseInt(startMeasureFn.value) : 1;
-				this.manager.addPiece(nameFn.value, parseInt(measuresFn.value), startVal, youtubeFn.value || undefined);
+				let ytId: string | undefined = undefined;
+
+				if (youtubeFn.value.trim()) {
+					const extracted = extractYouTubeId(youtubeFn.value);
+					if (extracted) {
+						ytId = extracted;
+					} else {
+						alert("Could not extract a valid YouTube ID from the provided link or ID. Please check the URL.");
+						return;
+					}
+				}
+
+				this.manager.addPiece(nameFn.value, parseInt(measuresFn.value), startVal, ytId);
 				this.renderRepertoire();
 
 				// Reset UI
