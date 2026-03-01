@@ -136,15 +136,33 @@ class App {
 		});
 
 		// Import/Export
+		const exportModal = document.getElementById('export-modal')!;
+		const exportFilenameInput = document.getElementById('export-filename') as HTMLInputElement;
+		const exportCleanCheckbox = document.getElementById('export-clean-checkbox') as HTMLInputElement;
+		const exportConfirmBtn = document.getElementById('export-confirm-btn')!;
+		const exportCancelBtn = document.getElementById('export-cancel-btn')!;
+
 		document.getElementById('export-btn')?.addEventListener('click', () => {
-			const data = this.manager.exportData();
-			const blob = new Blob([data], { type: 'application/json' });
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = `elephant_soup_backup_${new Date().toISOString().slice(0, 10)}.json`;
-			a.click();
-			URL.revokeObjectURL(url);
+			const dateStr = new Date().toISOString().slice(0, 10);
+			const defaultFilename = `elephant_soup_backup_${dateStr}`;
+
+			exportFilenameInput.value = defaultFilename;
+			exportCleanCheckbox.checked = false;
+			exportModal.style.display = 'flex';
+		});
+
+		exportCancelBtn.addEventListener('click', () => {
+			exportModal.style.display = 'none';
+		});
+
+		exportConfirmBtn.addEventListener('click', async () => {
+			const isClean = exportCleanCheckbox.checked;
+			let filename = exportFilenameInput.value.trim();
+			if (!filename) filename = 'elephant_soup_backup';
+			if (!filename.endsWith('.json')) filename += '.json';
+
+			exportModal.style.display = 'none';
+			await this.triggerExport(isClean, filename);
 		});
 
 		document.getElementById('import-btn')?.addEventListener('click', () => {
@@ -167,6 +185,60 @@ class App {
 			};
 			reader.readAsText(file);
 		});
+	}
+
+	async triggerExport(isClean: boolean, filename: string) {
+		const data = isClean ? this.manager.exportCleanData() : this.manager.exportData();
+		if (!filename.endsWith('.json')) filename += '.json';
+
+		// Strategy 1: File System Access API (Desktop Chrome/Edge/Opera)
+		// Provides a true "Save As" dialog with directory selection.
+		if ('showSaveFilePicker' in window) {
+			try {
+				const handle = await (window as any).showSaveFilePicker({
+					suggestedName: filename,
+					types: [{
+						description: 'JSON File',
+						accept: { 'application/json': ['.json'] },
+					}],
+				});
+				const writable = await handle.createWritable();
+				await writable.write(data);
+				await writable.close();
+				return;
+			} catch (err: any) {
+				// User cancelled or error occurred
+				if (err.name === 'AbortError') return;
+				console.error('File System Access API failed, falling back', err);
+			}
+		}
+
+		// Strategy 2: Web Share API (iOS/Android/macOS Safari)
+		// On iOS, this allows "Save to Files" which lets the user pick a directory.
+		if (navigator.share && navigator.canShare) {
+			try {
+				const file = new File([data], filename, { type: 'application/json' });
+				if (navigator.canShare({ files: [file] })) {
+					await navigator.share({
+						files: [file],
+						title: 'Export Repertoire',
+					});
+					return;
+				}
+			} catch (err) {
+				console.error('Web Share API failed, falling back', err);
+			}
+		}
+
+		// Strategy 3: Traditional Download Fallback (Firefox, etc.)
+		// Stores to default Downloads folder.
+		const blob = new Blob([data], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = filename;
+		a.click();
+		URL.revokeObjectURL(url);
 	}
 
 	setupPracticeUI() {

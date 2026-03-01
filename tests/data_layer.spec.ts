@@ -2,6 +2,13 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Elephant Soup Data Layer - YouTube Mapping', () => {
 	test.beforeEach(async ({ page }) => {
+		// Force traditional download to avoid native picker hangs
+		await page.addInitScript(() => {
+			(window as any).showSaveFilePicker = undefined;
+			if (navigator.share) {
+				(navigator as any).share = undefined;
+			}
+		});
 		await page.goto('/');
 	});
 
@@ -20,7 +27,7 @@ test.describe('Elephant Soup Data Layer - YouTube Mapping', () => {
 			]
 		};
 
-		const buffer = Buffer.from(JSON.stringify(oldData));
+		const buffer = (Buffer as any).from(JSON.stringify(oldData));
 
 		// Import
 		page.on('dialog', async dialog => {
@@ -41,13 +48,14 @@ test.describe('Elephant Soup Data Layer - YouTube Mapping', () => {
 		// Export and verify
 		const downloadPromise = page.waitForEvent('download');
 		await page.locator('#export-btn').click();
+		await page.locator('#export-confirm-btn').click();
 		const download = await downloadPromise;
 		const stream = await download.createReadStream();
 		const chunks = [];
 		for await (const chunk of stream) {
 			chunks.push(chunk);
 		}
-		const exportedData = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+		const exportedData = JSON.parse((Buffer as any).concat(chunks).toString('utf-8'));
 
 		expect(exportedData.repertoire).toHaveLength(1);
 		expect(exportedData.repertoire[0].name).toBe('Old Piece');
@@ -72,7 +80,7 @@ test.describe('Elephant Soup Data Layer - YouTube Mapping', () => {
 			]
 		};
 
-		const buffer = Buffer.from(JSON.stringify(newData));
+		const buffer = (Buffer as any).from(JSON.stringify(newData));
 
 		// Import
 		page.on('dialog', async dialog => {
@@ -93,13 +101,14 @@ test.describe('Elephant Soup Data Layer - YouTube Mapping', () => {
 		// Export and verify
 		const downloadPromise = page.waitForEvent('download');
 		await page.locator('#export-btn').click();
+		await page.locator('#export-confirm-btn').click();
 		const download = await downloadPromise;
 		const stream = await download.createReadStream();
 		const chunks = [];
 		for await (const chunk of stream) {
 			chunks.push(chunk);
 		}
-		const exportedData = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+		const exportedData = JSON.parse((Buffer as any).concat(chunks).toString('utf-8'));
 
 		expect(exportedData.repertoire).toHaveLength(1);
 		expect(exportedData.repertoire[0].name).toBe('YouTube Piece');

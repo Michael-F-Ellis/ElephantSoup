@@ -95,6 +95,10 @@ test.describe('Elephant Soup', () => {
 				}, 50); // Short delay to simulate playback
 				return Promise.resolve();
 			};
+			(window as any).showSaveFilePicker = undefined;
+			if (navigator.share) {
+				(navigator as any).share = undefined;
+			}
 		});
 
 		await page.goto('/');
@@ -385,6 +389,7 @@ test.describe('Elephant Soup', () => {
 		// Prepare for download
 		const downloadPromise = page.waitForEvent('download');
 		await page.locator('#export-btn').click();
+		await page.locator('#export-confirm-btn').click();
 		const download = await downloadPromise;
 
 		// Read the stream
@@ -394,7 +399,7 @@ test.describe('Elephant Soup', () => {
 		for await (const chunk of stream) {
 			chunks.push(chunk);
 		}
-		const buffer = Buffer.concat(chunks);
+		const buffer = (Buffer as any).concat(chunks);
 		const jsonData = JSON.parse(buffer.toString('utf-8'));
 
 		// Basic verification of export content

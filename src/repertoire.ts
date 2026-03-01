@@ -82,6 +82,39 @@ export class RepertoireManager {
 		return JSON.stringify(this.data, null, 2);
 	}
 
+	// Export a 'clean' version with no progress/merges
+	exportCleanData(): string {
+		const cleanData: RepertoireData = {
+			repertoire: this.data.repertoire.map(piece => {
+				const startMeasure = (piece.segments.length > 0)
+					? Math.min(...piece.segments.map(s => s.start))
+					: 1;
+
+				const cleanSegments: Segment[] = [];
+				for (let i = 0; i < piece.totalMeasures; i++) {
+					const m = startMeasure + i;
+					cleanSegments.push({
+						id: crypto.randomUUID(),
+						start: m,
+						end: m,
+						readiness: 0,
+						lastPracticed: null
+					});
+				}
+
+				return {
+					id: crypto.randomUUID(),
+					name: piece.name,
+					totalMeasures: piece.totalMeasures,
+					segments: cleanSegments,
+					youtubeId: piece.youtubeId,
+					measureOffsets: piece.measureOffsets
+				};
+			})
+		};
+		return JSON.stringify(cleanData, null, 2);
+	}
+
 	// Import data from JSON string
 	importData(json: string): boolean {
 		try {
