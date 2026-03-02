@@ -27,3 +27,19 @@ ElephantSoup is a web-based music practice and spaced repetition app. It allows 
 - When adding features, strive for **maximum locality** (make changes isolated rather than restructuring multiple modules when possible).
 - Rely on **test-driven development** and always verify Playwright tests (`npx playwright test`) after layout changes.
 - Prioritize clear structure and console logging where state transitions occur to simplify future debugging.
+
+## 🛠 Release & Development Recipes
+
+### Workflow Commands
+- **Test**: `npx playwright test` (full suite) or `npx playwright test tests/filename.spec.ts`
+- **Build**: `npm run build` (transpiles TS and runs Vite build)
+- **Deploy**: `python3 deploy.py` (syncs `dist/` to the GitHub Pages repository)
+
+### Standard Release Recipe
+To release a new version (e.g., v1.5.5):
+1. **Version Bump**: Update version string in `index.html` (header & footer) and `package.json`.
+2. **Verify**: Run `npx playwright test`.
+3. **Commit**: `git add . && git commit -m "Release v1.5.5: Summary of changes"`
+4. **Tag**: `git tag v1.5.5`
+5. **Push**: `git push origin main --tags`
+6. **Deploy**: `python3 deploy.py`
