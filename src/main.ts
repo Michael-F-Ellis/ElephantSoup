@@ -478,8 +478,8 @@ class App {
 		if (piece.youtubeId && piece.measureOffsets) {
 			// @ts-ignore
 			this.practicePlayer = new YT.Player('practice-youtube-player', {
-				height: '0',
-				width: '0',
+				height: '200',
+				width: '200',
 				videoId: piece.youtubeId,
 				playerVars: { 'playsinline': 1 },
 				events: {
