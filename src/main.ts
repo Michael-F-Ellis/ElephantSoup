@@ -1,9 +1,13 @@
 import './style.css'
 import { RepertoireManager } from './repertoire';
-import { Segment, Piece } from './types'; // Added Piece to import
+import { Piece, Segment } from './types';
 import { MusicRecorder } from './recorder';
 import { renderProgressGraph } from './statusgraph';
 import { CalibrationManager } from './calibration';
+import { MediaPlayer } from './player';
+import { YoutubePlayer } from './youtube-player';
+import { LocalAudioPlayer } from './audio-player';
+import { fileStorage } from './db';
 
 import { extractYouTubeId } from './utils';
 
@@ -13,7 +17,7 @@ class App {
 	manager: RepertoireManager;
 	recorder: MusicRecorder;
 	calibration: CalibrationManager | null = null;
-	practicePlayer: any = null;
+	practicePlayer: MediaPlayer | null = null;
 
 	// UI Elements
 	repertoireView: HTMLElement;
@@ -113,6 +117,7 @@ class App {
 			(document.getElementById('new-piece-measures') as HTMLInputElement).value = '';
 			(document.getElementById('new-piece-start-measure') as HTMLInputElement).value = '';
 			(document.getElementById('new-piece-youtube') as HTMLInputElement).value = '';
+			(document.getElementById('new-piece-audio') as HTMLInputElement).value = '';
 		});
 
 		// Save Piece
@@ -121,10 +126,13 @@ class App {
 			const measuresFn = document.getElementById('new-piece-measures') as HTMLInputElement;
 			const startMeasureFn = document.getElementById('new-piece-start-measure') as HTMLInputElement;
 			const youtubeFn = document.getElementById('new-piece-youtube') as HTMLInputElement;
+			const audioFn = document.getElementById('new-piece-audio') as HTMLInputElement;
 
 			if (nameFn.value && measuresFn.value) {
 				const startVal = startMeasureFn.value ? parseInt(startMeasureFn.value) : 1;
 				let ytId: string | undefined = undefined;
+				let mediaType: 'youtube' | 'local' = 'youtube';
+				let audioFile: File | undefined = audioFn.files?.[0];
 
 				if (youtubeFn.value.trim()) {
 					const extracted = extractYouTubeId(youtubeFn.value);
@@ -134,9 +142,19 @@ class App {
 						alert("Could not extract a valid YouTube ID from the provided link or ID. Please check the URL.");
 						return;
 					}
+				} else if (audioFile) {
+					mediaType = 'local';
 				}
 
-				this.manager.addPiece(nameFn.value, parseInt(measuresFn.value), startVal, ytId);
+				const piece = this.manager.addPiece(nameFn.value, parseInt(measuresFn.value), startVal, ytId, mediaType, audioFile?.name);
+
+				if (audioFile) {
+					fileStorage.saveFile(piece.id, audioFile).catch(err => {
+						console.error("Failed to save audio file to IDB", err);
+						alert("Failed to save audio file locally. Persistence might not work.");
+					});
+				}
+
 				this.renderRepertoire();
 
 				// Reset UI
@@ -146,6 +164,7 @@ class App {
 				measuresFn.value = '';
 				startMeasureFn.value = '';
 				youtubeFn.value = '';
+				audioFn.value = '';
 			}
 		});
 
@@ -229,10 +248,10 @@ class App {
 
 		// Strategy 2: Web Share API (iOS/Android/macOS Safari)
 		// On iOS, this allows "Save to Files" which lets the user pick a directory.
-		if (navigator.share && navigator.canShare) {
+		if (navigator.share && (navigator as any).canShare) {
 			try {
 				const file = new File([data], filename, { type: 'application/json' });
-				if (navigator.canShare({ files: [file] })) {
+				if ((navigator as any).canShare({ files: [file] })) {
 					await navigator.share({
 						files: [file],
 						title: 'Export Repertoire',
@@ -315,7 +334,7 @@ class App {
 
 	getAllPiecesSorted(): { piece: Piece, score: number, isMastered: boolean, nextDate?: Date }[] {
 		const pieces = this.manager.getPieces();
-		const enriched = pieces.map(piece => ({
+		const enriched = pieces.map((piece: Piece) => ({
 			piece,
 			score: this.manager.calculateReadiness(piece.id),
 			isMastered: this.manager.isMastered(piece.id),
@@ -374,7 +393,9 @@ class App {
                     ${score}%
                 </div>
 				<div class="piece-actions">
-					<button class="cal-btn" data-id="${piece.id}" title="Calibrate YouTube"><i class="fas fa-cog"></i></button>
+					<button class="cal-btn" data-id="${piece.id}" title="Calibrate ${piece.mediaType === 'youtube' ? 'YouTube' : 'Audio File'}">
+						<i class="fas ${piece.mediaType === 'youtube' ? 'fa-cog' : 'fa-music'}"></i>
+					</button>
 					<button class="delete-btn" data-id="${piece.id}"><i class="fas fa-trash"></i></button>
 				</div>
                 ${renderProgressGraph(piece)}
@@ -384,6 +405,9 @@ class App {
 				e.stopPropagation();
 				if (confirm(`Delete "${piece.name}"?`)) {
 					this.manager.deletePiece(piece.id);
+					if (piece.mediaType === 'local') {
+						fileStorage.deleteFile(piece.id).catch(console.error);
+					}
 					this.renderRepertoire();
 				}
 			});
@@ -401,27 +425,43 @@ class App {
 		});
 	}
 
-	startCalibration(pieceId: string) {
+	async startCalibration(pieceId: string) {
 		const piece = this.manager.getPiece(pieceId);
 		if (!piece) return;
 
-		if (!piece.youtubeId) {
-			const id = prompt("Please enter YouTube Video ID:");
-			if (!id) return;
-			piece.youtubeId = id;
+		let player: MediaPlayer | null = null;
+
+		if (piece.mediaType === 'youtube') {
+			if (!piece.youtubeId) {
+				const id = prompt("Please enter YouTube Video ID:");
+				if (!id) return;
+				piece.youtubeId = id;
+			}
+			player = new YoutubePlayer('youtube-player', piece.youtubeId);
+		} else {
+			const blob = await fileStorage.getFile(piece.id);
+			if (!blob) {
+				alert("Local audio file not found. Please re-add the piece or check storage.");
+				return;
+			}
+			player = new LocalAudioPlayer(blob);
 		}
 
 		this.repertoireView.style.display = 'none';
 		this.calibrationView.style.display = 'flex';
 
 		this.calibration = new CalibrationManager(piece, (offsets) => {
-			this.manager.updatePieceYoutube(pieceId, piece.youtubeId!, offsets);
+			if (piece.mediaType === 'youtube') {
+				this.manager.updatePieceYoutube(pieceId, piece.youtubeId!, offsets);
+			} else {
+				this.manager.updatePieceAudio(pieceId, piece.audioFileName!, offsets);
+			}
 			this.stopCalibration();
 		}, () => {
 			this.stopCalibration();
 		});
 
-		this.calibration.initPlayer();
+		this.calibration.initPlayer(player);
 	}
 
 	stopCalibration() {
@@ -466,7 +506,7 @@ class App {
 		}
 	}
 
-	activateSessionView(pieceId: string) {
+	async activateSessionView(pieceId: string) {
 		const piece = this.manager.getPiece(pieceId);
 		if (!piece) return;
 
@@ -474,20 +514,27 @@ class App {
 		this.practiceView.style.display = 'block';
 		document.getElementById('current-piece-name')!.textContent = piece.name;
 
-		// Init YouTube Player if needed
-		if (piece.youtubeId && piece.measureOffsets) {
-			// @ts-ignore
-			this.practicePlayer = new YT.Player('practice-youtube-player', {
+		if (piece.mediaType === 'youtube' && piece.youtubeId && piece.measureOffsets) {
+			this.practicePlayer = new YoutubePlayer('practice-youtube-player', piece.youtubeId, {
 				height: '200',
 				width: '200',
-				videoId: piece.youtubeId,
-				playerVars: { 'playsinline': 1 },
 				events: {
 					'onReady': () => {
 						this.loadNextSegment();
 					}
 				}
 			});
+		} else if (piece.mediaType === 'local' && piece.measureOffsets) {
+			const blob = await fileStorage.getFile(piece.id);
+			if (blob) {
+				this.practicePlayer = new LocalAudioPlayer(blob);
+				this.practicePlayer.onReady(() => {
+					this.loadNextSegment();
+				});
+			} else {
+				alert("Audio file not found.");
+				this.stopSession();
+			}
 		} else {
 			this.loadNextSegment();
 		}
@@ -587,21 +634,22 @@ class App {
 		if (!this.currentSegment || !piece.measureOffsets || !this.practicePlayer) return;
 
 		const startTime = piece.measureOffsets[this.currentSegment.start];
-		const endTime = piece.measureOffsets[this.currentSegment.end + 1] || (startTime + 5); // Default 5s if last
+		const nextMeasureNum = this.currentSegment.end + 1;
+		const endTime = piece.measureOffsets[nextMeasureNum] || (startTime + 5); // Default 5s if last
 
 		const preRoll = 2;
 		const postRoll = 1;
 
 		this.practicePlayer.seekTo(Math.max(0, startTime - preRoll), true);
-		this.practicePlayer.playVideo();
+		this.practicePlayer.play();
 
-		this.status.textContent = 'Playing YouTube sample...';
+		this.status.textContent = 'Playing sample...';
 		this.playSampleBtn.disabled = true;
 
 		// Monitor for stop
 		const checkEnd = setInterval(() => {
-			if (this.practicePlayer.getCurrentTime() >= endTime + postRoll) {
-				this.practicePlayer.pauseVideo();
+			if (this.practicePlayer!.getCurrentTime() >= endTime + postRoll) {
+				this.practicePlayer!.pause();
 				clearInterval(checkEnd);
 				this.playSampleBtn.disabled = false;
 				this.status.textContent = 'Ready to record';

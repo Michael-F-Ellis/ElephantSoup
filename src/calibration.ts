@@ -1,8 +1,9 @@
 import { Piece } from './types';
+import { MediaPlayer } from './player';
 
 export class CalibrationManager {
 	private piece: Piece;
-	private player: any;
+	private player: MediaPlayer | null = null;
 	private entryMode: boolean = false;
 	private offsets: number[] = []; // Raw array of timestamps
 	private onSave: (offsets: Record<number, number>) => void;
@@ -82,28 +83,19 @@ export class CalibrationManager {
 		this.renderGrid();
 	}
 
-	public initPlayer() {
-		// @ts-ignore
-		this.player = new YT.Player('youtube-player', {
-			height: '100%',
-			width: '100%',
-			videoId: this.piece.youtubeId,
-			playerVars: {
-				'playsinline': 1,
-				'rel': 0
-			},
-			events: {
-				'onReady': () => {
-					this.playBtn.onclick = () => this.togglePlayback();
-					this.pauseBtn.onclick = () => this.togglePlayback();
-					document.getElementById('cal-stop')!.onclick = () => {
-						this.player.stopVideo();
-						this.playBtn.style.display = 'flex';
-						this.pauseBtn.style.display = 'none';
-					};
-					this.startStatusPoller();
+	public initPlayer(player: MediaPlayer) {
+		this.player = player;
+		this.player.onReady(() => {
+			this.playBtn.onclick = () => this.togglePlayback();
+			this.pauseBtn.onclick = () => this.togglePlayback();
+			document.getElementById('cal-stop')!.onclick = () => {
+				if (this.player) {
+					this.player.stop();
+					this.playBtn.style.display = 'flex';
+					this.pauseBtn.style.display = 'none';
 				}
-			}
+			};
+			this.startStatusPoller();
 		});
 	}
 
@@ -165,7 +157,7 @@ export class CalibrationManager {
 		if (!this.player) return;
 		const state = this.player.getPlayerState();
 		if (state === 1) { // Playing
-			this.player.pauseVideo();
+			this.player.pause();
 			this.playBtn.style.display = 'flex';
 			this.pauseBtn.style.display = 'none';
 		} else {
@@ -173,7 +165,7 @@ export class CalibrationManager {
 				const startTime = Math.max(0, this.offsets[this.selectedIndex] - 2);
 				this.player.seekTo(startTime, true);
 			}
-			this.player.playVideo();
+			this.player.play();
 			this.playBtn.style.display = 'none';
 			this.pauseBtn.style.display = 'flex';
 		}
@@ -236,7 +228,9 @@ export class CalibrationManager {
 				dot.onclick = (e) => {
 					e.stopPropagation();
 					this.selectedIndex = j;
-					this.player.seekTo(this.offsets[j], true);
+					if (this.player) {
+						this.player.seekTo(this.offsets[j], true);
+					}
 					this.renderGrid();
 				};
 

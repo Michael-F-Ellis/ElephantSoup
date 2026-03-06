@@ -21,6 +21,12 @@ export class RepertoireManager {
 				piece.nextDate = new Date().toISOString();
 				changed = true;
 			}
+
+			// Migration 2: Ensure mediaType exists
+			if (!piece.mediaType) {
+				piece.mediaType = 'youtube'; // Default for old pieces
+				changed = true;
+			}
 		});
 
 		if (changed) {
@@ -108,6 +114,8 @@ export class RepertoireManager {
 					totalMeasures: piece.totalMeasures,
 					segments: cleanSegments,
 					youtubeId: piece.youtubeId,
+					mediaType: piece.mediaType,
+					audioFileName: piece.audioFileName,
 					measureOffsets: piece.measureOffsets
 				};
 			})
@@ -139,13 +147,15 @@ export class RepertoireManager {
 		return this.data.repertoire.find(p => p.id === id);
 	}
 
-	addPiece(name: string, totalMeasures: number, startMeasure: number = 1, youtubeId?: string): Piece {
+	addPiece(name: string, totalMeasures: number, startMeasure: number = 1, youtubeId?: string, mediaType: 'youtube' | 'local' = 'youtube', audioFileName?: string): Piece {
 		const newPiece: Piece = {
 			id: crypto.randomUUID(),
 			name,
 			totalMeasures,
 			segments: [],
-			youtubeId
+			mediaType,
+			youtubeId,
+			audioFileName
 		};
 
 		// Generate initial 1-measure segments
@@ -170,9 +180,26 @@ export class RepertoireManager {
 		if (!piece) return;
 
 		piece.youtubeId = youtubeId;
+		piece.mediaType = 'youtube';
 		piece.measureOffsets = measureOffsets;
 
-		// Check if we need to increase totalMeasures
+		this.syncMeasureCount(piece, measureOffsets);
+		this.saveToStorage();
+	}
+
+	updatePieceAudio(pieceId: string, fileName: string, measureOffsets: Record<number, number>) {
+		const piece = this.getPiece(pieceId);
+		if (!piece) return;
+
+		piece.audioFileName = fileName;
+		piece.mediaType = 'local';
+		piece.measureOffsets = measureOffsets;
+
+		this.syncMeasureCount(piece, measureOffsets);
+		this.saveToStorage();
+	}
+
+	private syncMeasureCount(piece: Piece, measureOffsets: Record<number, number>) {
 		const measureNums = Object.keys(measureOffsets).map(Number);
 		if (measureNums.length > 0) {
 			const maxMeasureMapped = Math.max(...measureNums);
@@ -195,8 +222,6 @@ export class RepertoireManager {
 				piece.totalMeasures = mappedCount;
 			}
 		}
-
-		this.saveToStorage();
 	}
 
 	deletePiece(id: string) {

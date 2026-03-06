@@ -12,7 +12,9 @@ export interface Piece {
 	totalMeasures: number;
 	segments: Segment[];
 	nextDate?: string; // ISO Date
+	mediaType: 'youtube' | 'local';
 	youtubeId?: string;
+	audioFileName?: string;
 	measureOffsets?: Record<number, number>; // Key: measure number, Value: seconds
 }
 
