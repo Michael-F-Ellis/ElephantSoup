@@ -6,6 +6,10 @@ export class SyncManager {
 	private readonly STORE_NAME = 'handles';
 	private readonly KEY = 'syncFile';
 
+	isSupported(): boolean {
+		return 'showOpenFilePicker' in window;
+	}
+
 	async init() {
 		this.fileHandle = await this.loadHandle();
 		if (this.fileHandle) {

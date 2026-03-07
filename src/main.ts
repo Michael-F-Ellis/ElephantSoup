@@ -147,6 +147,11 @@ class App {
 	setupRepertoireUI() {
 		// Sync Button
 		this.syncBtn.addEventListener('click', async () => {
+			if (!syncManager.isSupported()) {
+				alert("Live Cloud Sync is currently only supported in Chromium-based browsers (Chrome, Edge, Brave, etc.).\n\nSafari and Firefox users can still use the manual 'Export' and 'Import' buttons to sync their data.");
+				return;
+			}
+
 			if (syncManager.hasLinkedFile()) {
 				if (confirm("Stop auto-syncing with this file?")) {
 					await syncManager.unlinkFile();
