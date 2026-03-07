@@ -578,3 +578,65 @@ h2 {
 .dot.active {
     animation: flash 0.3s ease-out;
 }
+/* Piece Actions & Sync UI */
+.piece-actions {
+	display: flex;
+	gap: 5px;
+}
+
+.piece-actions button {
+	background: none;
+	border: none;
+	color: #8e8e93;
+	cursor: pointer;
+	padding: 5px;
+	font-size: 1.1em;
+	transition: color 0.2s;
+}
+
+.piece-actions .cal-btn:hover {
+	color: #0a84ff;
+}
+
+.piece-actions .delete-btn:hover {
+	color: #ff453a;
+}
+
+/* Toast Notifications */
+.toast {
+	position: fixed;
+	bottom: 30px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: rgba(44, 44, 46, 0.95);
+	color: white;
+	padding: 12px 24px;
+	border-radius: 25px;
+	font-size: 0.9em;
+	z-index: 1000;
+	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	transition: opacity 0.5s, transform 0.5s;
+	animation: slideUp 0.3s ease-out;
+}
+
+.toast.fade-out {
+	opacity: 0;
+	transform: translate(-50%, 20px);
+}
+
+@keyframes slideUp {
+	from { transform: translate(-50%, 20px); opacity: 0; }
+	to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* Sync Button States */
+#sync-btn.linked {
+	color: #30d158;
+	border-color: rgba(48, 209, 88, 0.3);
+}
+
+#sync-btn.linked:hover {
+	color: #ff453a;
+	border-color: rgba(255, 69, 58, 0.3);
+}

@@ -8,6 +8,7 @@ import { MediaPlayer } from './player';
 import { YoutubePlayer } from './youtube-player';
 import { LocalAudioPlayer } from './audio-player';
 import { fileStorage } from './db';
+import { syncManager } from './sync';
 
 import { extractYouTubeId } from './utils';
 
@@ -32,6 +33,7 @@ class App {
 	recordButton: HTMLButtonElement;
 	playButton: HTMLButtonElement;
 	playSampleBtn: HTMLButtonElement;
+	syncBtn: HTMLButtonElement;
 
 	// State
 	currentPieceId: string | null = null;
@@ -62,6 +64,7 @@ class App {
 		this.recordButton = document.getElementById('recordButton') as HTMLButtonElement;
 		this.playButton = document.getElementById('playButton') as HTMLButtonElement;
 		this.playSampleBtn = document.getElementById('play-sample-btn') as HTMLButtonElement;
+		this.syncBtn = document.getElementById('sync-btn') as HTMLButtonElement;
 
 		// Modal
 		this.resumeModal = document.getElementById('resume-modal')!;
@@ -73,12 +76,51 @@ class App {
 		this.init();
 	}
 
-	init() {
+	async init() {
 		this.setupRepertoireUI();
 		this.setupPracticeUI();
 		this.setupRecorderCallbacks();
 		this.setupModalCallbacks();
 		this.renderRepertoire();
+
+		// Initialize Sync
+		await syncManager.init();
+		this.updateSyncButtonUI();
+		this.performInitialSync();
+	}
+
+	async performInitialSync() {
+		if (syncManager.hasLinkedFile()) {
+			const content = await syncManager.readSyncFile();
+			if (content) {
+				const result = this.manager.importData(content);
+				if (result.status && result.summary && result.summary !== "Already up to date.") {
+					this.notify(result.summary);
+					this.renderRepertoire();
+				}
+			}
+		}
+	}
+
+	updateSyncButtonUI() {
+		if (syncManager.hasLinkedFile()) {
+			this.syncBtn.innerHTML = '<i class="fas fa-link-slash"></i> Unlink Sync File';
+			this.syncBtn.classList.add('linked');
+		} else {
+			this.syncBtn.innerHTML = '<i class="fas fa-sync"></i> Link Sync File';
+			this.syncBtn.classList.remove('linked');
+		}
+	}
+
+	notify(msg: string) {
+		const toast = document.createElement('div');
+		toast.className = 'toast';
+		toast.textContent = msg;
+		document.body.appendChild(toast);
+		setTimeout(() => {
+			toast.classList.add('fade-out');
+			setTimeout(() => toast.remove(), 500);
+		}, 3500);
 	}
 
 	setupModalCallbacks() {
@@ -103,6 +145,23 @@ class App {
 	}
 
 	setupRepertoireUI() {
+		// Sync Button
+		this.syncBtn.addEventListener('click', async () => {
+			if (syncManager.hasLinkedFile()) {
+				if (confirm("Stop auto-syncing with this file?")) {
+					await syncManager.unlinkFile();
+					this.updateSyncButtonUI();
+				}
+			} else {
+				const success = await syncManager.linkFile();
+				if (success) {
+					this.updateSyncButtonUI();
+					this.performInitialSync();
+					this.onDataChanged(); // Save current local data to new file
+				}
+			}
+		});
+
 		// Add Piece Button
 		document.getElementById('add-piece-btn')?.addEventListener('click', () => {
 			this.newPieceForm.style.display = 'block';
@@ -155,6 +214,7 @@ class App {
 					});
 				}
 
+				this.onDataChanged();
 				this.renderRepertoire();
 
 				// Reset UI
@@ -208,9 +268,11 @@ class App {
 			const reader = new FileReader();
 			reader.onload = (evt) => {
 				if (evt.target?.result) {
-					if (this.manager.importData(evt.target.result as string)) {
+					const result = this.manager.importData(evt.target.result as string);
+					if (result.status) {
+						this.onDataChanged();
 						this.renderRepertoire();
-						alert('Data imported successfully');
+						alert(result.summary || 'Data imported successfully');
 					} else {
 						alert('Failed to import data');
 					}
@@ -218,6 +280,13 @@ class App {
 			};
 			reader.readAsText(file);
 		});
+	}
+
+	async onDataChanged() {
+		// Sync with Cloud file if linked
+		if (syncManager.hasLinkedFile()) {
+			await syncManager.autoSave({ repertoire: this.manager.getPieces() });
+		}
 	}
 
 	async triggerExport(isClean: boolean, filename: string) {
@@ -408,6 +477,7 @@ class App {
 					if (piece.mediaType === 'local') {
 						fileStorage.deleteFile(piece.id).catch(console.error);
 					}
+					this.onDataChanged();
 					this.renderRepertoire();
 				}
 			});
@@ -456,6 +526,7 @@ class App {
 			} else {
 				this.manager.updatePieceAudio(pieceId, piece.audioFileName!, offsets);
 			}
+			this.onDataChanged();
 			this.stopCalibration();
 		}, () => {
 			this.stopCalibration();
@@ -532,7 +603,9 @@ class App {
 					this.loadNextSegment();
 				});
 			} else {
-				alert("Audio file not found.");
+				const isCloudSync = syncManager.hasLinkedFile();
+				const cloudMsg = isCloudSync ? "\n\nNote: If you sync across devices, you must also provide the audio file on this device." : "";
+				alert("Audio file not found." + cloudMsg);
 				this.stopSession();
 			}
 		} else {
@@ -660,6 +733,7 @@ class App {
 	handleReadiness(level: number) {
 		if (this.currentPieceId && this.currentSegment) {
 			this.manager.updateSegmentReadiness(this.currentPieceId, this.currentSegment.id, level);
+			this.onDataChanged();
 			this.loadNextSegment();
 		}
 	}

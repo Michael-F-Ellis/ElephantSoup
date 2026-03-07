@@ -14,19 +14,33 @@ export class RepertoireManager {
 
 	private migrateData() {
 		let changed = false;
+		const now = new Date().toISOString();
+
 		this.data.repertoire.forEach(piece => {
 			// Migration 1: Ensure nextDate exists for mastered pieces (1 active segment)
-			if (this.getActiveSegments(piece).length === 1 && !piece.nextDate) {
-				// Set default to Now so it appears in the queue immediately
-				piece.nextDate = new Date().toISOString();
+			if (this.isMastered(piece.id) && !piece.nextDate) {
+				piece.nextDate = now;
 				changed = true;
 			}
 
 			// Migration 2: Ensure mediaType exists
 			if (!piece.mediaType) {
-				piece.mediaType = 'youtube'; // Default for old pieces
+				piece.mediaType = 'youtube';
 				changed = true;
 			}
+
+			// Migration 3: Ensure updatedAt exists
+			if (!piece.updatedAt) {
+				piece.updatedAt = now;
+				changed = true;
+			}
+
+			piece.segments.forEach(seg => {
+				if (!seg.updatedAt) {
+					seg.updatedAt = seg.lastPracticed || now;
+					changed = true;
+				}
+			});
 		});
 
 		if (changed) {
@@ -104,7 +118,8 @@ export class RepertoireManager {
 						start: m,
 						end: m,
 						readiness: 0,
-						lastPracticed: null
+						lastPracticed: null,
+						updatedAt: new Date().toISOString()
 					});
 				}
 
@@ -116,27 +131,104 @@ export class RepertoireManager {
 					youtubeId: piece.youtubeId,
 					mediaType: piece.mediaType,
 					audioFileName: piece.audioFileName,
-					measureOffsets: piece.measureOffsets
+					measureOffsets: piece.measureOffsets,
+					updatedAt: new Date().toISOString()
 				};
 			})
 		};
 		return JSON.stringify(cleanData, null, 2);
 	}
 
-	// Import data from JSON string
-	importData(json: string): boolean {
+	// Import data with Smart Merge
+	importData(json: string): { status: boolean, summary?: string } {
 		try {
-			const parsed = JSON.parse(json);
-			// Basic validation could go here
-			if (parsed && Array.isArray(parsed.repertoire)) {
-				this.data = parsed;
+			const parsed = JSON.parse(json) as RepertoireData;
+			if (!parsed || !Array.isArray(parsed.repertoire)) return { status: false };
+
+			let piecesAdded = 0;
+			let piecesUpdated = 0;
+			let segmentsUpdated = 0;
+
+			const now = new Date().toISOString();
+
+			parsed.repertoire.forEach(importedPiece => {
+				const localPiece = this.getPiece(importedPiece.id);
+
+				if (!localPiece) {
+					// New Piece
+					this.data.repertoire.push(importedPiece);
+					piecesAdded++;
+				} else {
+					// Existing Piece - Start Merge Logic
+					let pieceModified = false;
+
+					// Meta-data merge: If imported is newer, take its meta-data
+					const importedTime = new Date(importedPiece.updatedAt || 0).getTime();
+					const localTime = new Date(localPiece.updatedAt || 0).getTime();
+
+					if (importedTime > localTime) {
+						localPiece.name = importedPiece.name;
+						localPiece.totalMeasures = importedPiece.totalMeasures;
+						localPiece.mediaType = importedPiece.mediaType;
+						localPiece.youtubeId = importedPiece.youtubeId;
+						localPiece.audioFileName = importedPiece.audioFileName;
+						localPiece.measureOffsets = importedPiece.measureOffsets;
+						localPiece.nextDate = importedPiece.nextDate;
+						localPiece.updatedAt = importedPiece.updatedAt;
+						pieceModified = true;
+						piecesUpdated++;
+					}
+
+					// Segment merge: Check each imported segment
+					importedPiece.segments.forEach(importedSeg => {
+						const localSeg = localPiece.segments.find(s => s.id === importedSeg.id);
+
+						if (!localSeg) {
+							// New segment (e.g. from a merge that happened on on the other device)
+							localPiece.segments.push(importedSeg);
+							segmentsUpdated++;
+							pieceModified = true;
+						} else {
+							// Check which is newer
+							const importedSegTime = Math.max(
+								new Date(importedSeg.updatedAt || 0).getTime(),
+								importedSeg.lastPracticed ? new Date(importedSeg.lastPracticed).getTime() : 0
+							);
+							const localSegTime = Math.max(
+								new Date(localSeg.updatedAt || 0).getTime(),
+								localSeg.lastPracticed ? new Date(localSeg.lastPracticed).getTime() : 0
+							);
+
+							if (importedSegTime > localSegTime) {
+								localSeg.readiness = importedSeg.readiness;
+								localSeg.lastPracticed = importedSeg.lastPracticed;
+								localSeg.updatedAt = importedSeg.updatedAt;
+								localSeg.start = importedSeg.start;
+								localSeg.end = importedSeg.end;
+								segmentsUpdated++;
+								pieceModified = true;
+							}
+						}
+					});
+
+					if (pieceModified) {
+						localPiece.updatedAt = importedTime > localTime ? importedPiece.updatedAt : now;
+					}
+				}
+			});
+
+			if (piecesAdded > 0 || piecesUpdated > 0 || segmentsUpdated > 0) {
 				this.saveToStorage();
-				return true;
+				const summary = `Import complete: ${piecesAdded} new, ${piecesUpdated} pieces updated, ${segmentsUpdated} segments synced.`;
+				return { status: true, summary };
 			}
+
+			return { status: true, summary: "Already up to date." };
+
 		} catch (e) {
 			console.error("Import failed", e);
 		}
-		return false;
+		return { status: false };
 	}
 
 	getPieces(): Piece[] {
@@ -148,6 +240,7 @@ export class RepertoireManager {
 	}
 
 	addPiece(name: string, totalMeasures: number, startMeasure: number = 1, youtubeId?: string, mediaType: 'youtube' | 'local' = 'youtube', audioFileName?: string): Piece {
+		const now = new Date().toISOString();
 		const newPiece: Piece = {
 			id: crypto.randomUUID(),
 			name,
@@ -155,7 +248,8 @@ export class RepertoireManager {
 			segments: [],
 			mediaType,
 			youtubeId,
-			audioFileName
+			audioFileName,
+			updatedAt: now
 		};
 
 		// Generate initial 1-measure segments
@@ -166,7 +260,8 @@ export class RepertoireManager {
 				start: measureNum,
 				end: measureNum,
 				readiness: 0,
-				lastPracticed: null
+				lastPracticed: null,
+				updatedAt: now
 			});
 		}
 
@@ -184,6 +279,7 @@ export class RepertoireManager {
 		piece.measureOffsets = measureOffsets;
 
 		this.syncMeasureCount(piece, measureOffsets);
+		piece.updatedAt = new Date().toISOString();
 		this.saveToStorage();
 	}
 
@@ -196,6 +292,7 @@ export class RepertoireManager {
 		piece.measureOffsets = measureOffsets;
 
 		this.syncMeasureCount(piece, measureOffsets);
+		piece.updatedAt = new Date().toISOString();
 		this.saveToStorage();
 	}
 
@@ -216,7 +313,8 @@ export class RepertoireManager {
 						start: m,
 						end: m,
 						readiness: 0,
-						lastPracticed: null
+						lastPracticed: null,
+						updatedAt: new Date().toISOString()
 					});
 				}
 				piece.totalMeasures = mappedCount;
@@ -343,6 +441,8 @@ export class RepertoireManager {
 			piece.nextDate = nextDateObj.toISOString();
 		}
 
+		segment.updatedAt = new Date().toISOString();
+		piece.updatedAt = new Date().toISOString();
 		this.saveToStorage();
 	}
 
@@ -427,14 +527,16 @@ export class RepertoireManager {
 				const newStart = Math.min(seg.start, mergeTarget.start);
 				const newEnd = Math.max(seg.end, mergeTarget.end);
 
-				// Add the new segment
+				const now = new Date().toISOString();
 				piece.segments.push({
 					id: crypto.randomUUID(),
 					start: newStart,
 					end: newEnd,
 					readiness: 0,
-					lastPracticed: null
+					lastPracticed: null,
+					updatedAt: now
 				});
+				piece.updatedAt = now;
 				console.log(`Merged\n[${newStart}-${newEnd}] 0`);
 				this.saveToStorage();
 			}

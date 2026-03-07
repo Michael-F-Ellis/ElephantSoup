@@ -27,11 +27,11 @@ test.describe('Elephant Soup Data Layer - YouTube Mapping', () => {
 			]
 		};
 
-		const buffer = (Buffer as any).from(JSON.stringify(oldData));
+		const buffer = Buffer.from(JSON.stringify(oldData));
 
 		// Import
 		page.on('dialog', async dialog => {
-			if (dialog.message().includes('imported successfully')) {
+			if (dialog.message().toLowerCase().includes('import')) {
 				await dialog.dismiss();
 			}
 		});
@@ -55,7 +55,7 @@ test.describe('Elephant Soup Data Layer - YouTube Mapping', () => {
 		for await (const chunk of stream) {
 			chunks.push(chunk);
 		}
-		const exportedData = JSON.parse((Buffer as any).concat(chunks).toString('utf-8'));
+		const exportedData = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
 
 		expect(exportedData.repertoire).toHaveLength(1);
 		expect(exportedData.repertoire[0].name).toBe('Old Piece');
@@ -80,11 +80,11 @@ test.describe('Elephant Soup Data Layer - YouTube Mapping', () => {
 			]
 		};
 
-		const buffer = (Buffer as any).from(JSON.stringify(newData));
+		const buffer = Buffer.from(JSON.stringify(newData));
 
 		// Import
 		page.on('dialog', async dialog => {
-			if (dialog.message().includes('imported successfully')) {
+			if (dialog.message().toLowerCase().includes('import')) {
 				await dialog.dismiss();
 			}
 		});
@@ -108,7 +108,7 @@ test.describe('Elephant Soup Data Layer - YouTube Mapping', () => {
 		for await (const chunk of stream) {
 			chunks.push(chunk);
 		}
-		const exportedData = JSON.parse((Buffer as any).concat(chunks).toString('utf-8'));
+		const exportedData = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
 
 		expect(exportedData.repertoire).toHaveLength(1);
 		expect(exportedData.repertoire[0].name).toBe('YouTube Piece');

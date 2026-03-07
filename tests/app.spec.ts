@@ -96,7 +96,7 @@ test.describe('Elephant Soup', () => {
 				return Promise.resolve();
 			};
 			(window as any).showSaveFilePicker = undefined;
-			if (navigator.share) {
+			if ('share' in navigator) {
 				(navigator as any).share = undefined;
 			}
 		});
@@ -455,7 +455,7 @@ test.describe('Elephant Soup', () => {
 
 		// Handle success alert
 		page.on('dialog', async dialog => {
-			if (dialog.message().includes('imported successfully')) {
+			if (dialog.message().toLowerCase().includes('import')) {
 				await dialog.dismiss();
 			}
 		});
