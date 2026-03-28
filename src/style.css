@@ -280,6 +280,11 @@ h2 {
     border-bottom: 3px solid #30d158;
 }
 
+.rate-btn.selected[data-level="0"] { background: #ff453a; color: black; }
+.rate-btn.selected[data-level="1"] { background: #ff9f0a; color: black; }
+.rate-btn.selected[data-level="2"] { background: #ffd60a; color: black; }
+.rate-btn.selected[data-level="3"] { background: #30d158; color: black; }
+
 .rate-btn:hover {
     filter: brightness(1.2);
 }

@@ -312,6 +312,7 @@ test.describe('Elephant Soup', () => {
 
 		// Rate 2
 		await rateControls.locator('.rate-btn[data-level="2"]').click();
+		await expect(segmentDisplay).not.toHaveText(firstMeasureText!);
 
 		// 4. Suspend
 		// Wait for next segment to load (display changes) or just click suspend immediately?
@@ -347,7 +348,7 @@ test.describe('Elephant Soup', () => {
 		// We expect 3 iterations
 		for (let i = 0; i < 3; i++) {
 			const text = await segmentDisplay.textContent();
-			expect(seenMeasures.has(text!)).toBeFalsy(); // Should not be a repeat of the first one (or previous ones in this loop if unique)
+			expect(seenMeasures.has(text!)).toBeFalsy(); // Should not be a repeat of the first one
 			seenMeasures.add(text!);
 
 			// Rate it
@@ -358,6 +359,11 @@ test.describe('Elephant Soup', () => {
 			await page.locator('#playButton').click();
 			await expect(rateControls).toBeVisible({ timeout: 5000 });
 			await rateControls.locator('.rate-btn[data-level="2"]').click();
+
+			// Wait for the next segment to load
+			if (i < 2) {
+				await expect(segmentDisplay).not.toHaveText(text!);
+			}
 		}
 
 		// After 3rd rating, we should get session complete

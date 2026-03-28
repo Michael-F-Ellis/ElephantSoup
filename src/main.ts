@@ -684,6 +684,7 @@ class App {
 			this.recorder.audioChunks = [];
 			this.status.textContent = 'Ready to record';
 			this.updateRecorderUI();
+			this.updateReadinessUI();
 		}
 	}
 
@@ -735,11 +736,27 @@ class App {
 		}, 100);
 	}
 
+	updateReadinessUI() {
+		const btns = document.querySelectorAll('.rate-btn');
+		btns.forEach(btn => {
+			const level = parseInt(btn.getAttribute('data-level') || '0');
+			if (this.currentSegment && level === this.currentSegment.readiness) {
+				btn.classList.add('selected');
+			} else {
+				btn.classList.remove('selected');
+			}
+		});
+	}
+
 	handleReadiness(level: number) {
 		if (this.currentPieceId && this.currentSegment) {
 			this.manager.updateSegmentReadiness(this.currentPieceId, this.currentSegment.id, level);
 			this.onDataChanged();
-			this.loadNextSegment();
+			this.updateReadinessUI();
+			// Pause briefly to show the selection before moving on
+			setTimeout(() => {
+				this.loadNextSegment();
+			}, 250);
 		}
 	}
 
