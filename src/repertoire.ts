@@ -5,11 +5,74 @@ export class RepertoireManager {
 	private sessions: { [pieceId: string]: Segment[] } = {};
 	private readonly STORAGE_KEY = 'elephant_soup_repertoire';
 	private readonly STORAGE_KEY_SESSIONS = 'elephant_soup_sessions';
+	private syncTimeout: number | null = null;
+	private isSyncing = false;
 
 	constructor() {
 		this.data = this.loadFromStorage();
 		this.migrateData();
 		this.sessions = this.loadSessionsFromStorage();
+		this.initServerSync();
+	}
+
+	private isServerMode(): boolean {
+		// Detect if we are served by rp-server. 
+		// Exclude port 5173 (Vite dev server) so tests run in local-only mode.
+		return window.location.pathname.startsWith('/apps/elephantsoup/') && window.location.port !== '5173';
+	}
+
+	private async initServerSync() {
+		if (this.isServerMode()) {
+			await this.loadFromServer();
+		}
+	}
+
+	private async loadFromServer() {
+		try {
+			const resp = await fetch('/apps/elephantsoup/repertoire/load');
+			if (resp.ok) {
+				const remoteData = await resp.json();
+				if (remoteData && Array.isArray(remoteData.repertoire)) {
+					console.log("Syncing with server data...");
+					const result = this.importData(JSON.stringify(remoteData));
+					if (result.status) {
+						console.log(result.summary);
+					}
+				}
+			}
+		} catch (e) {
+			console.error("Failed to load repertoire from server", e);
+		}
+	}
+
+	private async syncWithServer() {
+		if (!this.isServerMode() || this.isSyncing) return;
+
+		// Debounce saves
+		if (this.syncTimeout) {
+			window.clearTimeout(this.syncTimeout);
+		}
+
+		this.syncTimeout = window.setTimeout(async () => {
+			this.isSyncing = true;
+			try {
+				const resp = await fetch('/apps/elephantsoup/repertoire/save', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(this.data)
+				});
+				if (!resp.ok) {
+					console.error("Server save failed", await resp.text());
+				} else {
+					console.log("Repertoire auto-saved to server");
+				}
+			} catch (e) {
+				console.error("Error syncing with server", e);
+			} finally {
+				this.isSyncing = false;
+				this.syncTimeout = null;
+			}
+		}, 5000); // 5 second debounce
 	}
 
 	private migrateData() {
@@ -95,6 +158,7 @@ export class RepertoireManager {
 
 	private saveToStorage() {
 		localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
+		this.syncWithServer();
 	}
 
 	// Export current data as JSON string

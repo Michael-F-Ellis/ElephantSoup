@@ -1,3 +1,4 @@
 {
+	"python.defaultInterpreterPath": "/opt/homebrew/bin/python3",
 	"geminicodeassist.contextExclusionGitignore": false
 }

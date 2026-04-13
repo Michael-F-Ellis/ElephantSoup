@@ -81,9 +81,17 @@ class App {
 		this.setupPracticeUI();
 		this.setupRecorderCallbacks();
 		this.setupModalCallbacks();
+
+		// If in server mode, wait for initial load from Git
+		if (this.manager['isServerMode']()) {
+			this.status.textContent = 'Syncing with server...';
+			await this.manager['loadFromServer']();
+			this.status.textContent = '';
+		}
+
 		this.renderRepertoire();
 
-		// Initialize Sync
+		// Initialize Sync (Local Cloud Sync fallback)
 		await syncManager.init();
 		this.updateSyncButtonUI();
 		this.performInitialSync();
@@ -288,10 +296,11 @@ class App {
 	}
 
 	async onDataChanged() {
-		// Sync with Cloud file if linked
+		// Local Cloud Sync (Legacy/Fallback)
 		if (syncManager.hasLinkedFile()) {
 			await syncManager.autoSave({ repertoire: this.manager.getPieces() });
 		}
+		// Server Sync is handled automatically by manager.saveToStorage()
 	}
 
 	async triggerExport(isClean: boolean, filename: string) {
